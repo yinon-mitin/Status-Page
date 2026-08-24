@@ -16,6 +16,12 @@ It intentionally does **not** apply infrastructure automatically. The VPC, publi
 
 Set `create_services = true` only after supplying private application subnets, the ECS security-group ID, web target-group ARN, non-secret runtime settings, and Secrets Manager ARNs for `STATUS_PAGE_SECRET_KEY` and `POSTGRES_PASSWORD`.
 
+## Network foundation
+
+`network.tf` implements the approved topology but is disabled by default with `create_network = false`: a VPC, public subnets in `il-central-1a` and `il-central-1b` for the internet-facing ALB, and internal application subnets in the same AZs for ECS. The ALB security group accepts public HTTP/HTTPS; the ECS security group accepts HTTP only from the ALB security group. Internal ECS subnets have no public IP assignment or direct Internet route.
+
+Review CIDRs, availability zones, private-task egress, and the data-layer security groups before enabling this layer. It is intentionally not applied during the Wednesday/Thursday milestones.
+
 ## Safe first use
 
 ```bash

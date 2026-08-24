@@ -12,6 +12,7 @@ image_tag   = "sha-REPLACE_WITH_GIT_SHA"
 github_oidc_provider_arn = "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
 
 create_services       = false
+create_network        = false
 app_private_subnet_ids = ["subnet-REPLACE_ME"]
 ecs_security_group_id  = "sg-REPLACE_ME"
 web_target_group_arn   = "arn:aws:elasticloadbalancing:il-central-1:ACCOUNT_ID:targetgroup/statuspage-web/REPLACE_ME"

@@ -13,6 +13,11 @@
 - [Terraform baseline на четверг](terraform/README.md)
 - [Статус реализации на четверг — English](docs/THURSDAY_STATUS.md)
 - [Статус реализации на четверг — Russian](docs/THURSDAY_STATUS.ru.md)
+- [Changelog](CHANGELOG.md)
+- [Журнал реализации — English](docs/IMPLEMENTATION_LOG.md)
+- [Журнал реализации — Russian](docs/IMPLEMENTATION_LOG.ru.md)
+- [Аудит milestone среды/четверга — English](docs/MILESTONE_AUDIT.md)
+- [Аудит milestone среды/четверга — Russian](docs/MILESTONE_AUDIT.ru.md)
 - [Зафиксированный application source: upstream Status-Page v2.5.1](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1)
 
 Документ отделяет факты, взятые из исходника Status-Page, от согласованных решений для AWS deployment. Инфраструктурная диаграмма использует Mermaid и отображается в GitHub, GitLab или Markdown-просмотрщиках с поддержкой Mermaid.

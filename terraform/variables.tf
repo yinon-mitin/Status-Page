@@ -108,3 +108,42 @@ variable "github_repository" {
   type        = string
   default     = "yinon-mitin/Status-Page"
 }
+
+variable "create_network" {
+  description = "Set true only after reviewing the VPC CIDR and the cost/security implications of the network layer."
+  type        = bool
+  default     = false
+}
+
+variable "vpc_cidr" {
+  description = "CIDR for the Status-Page VPC."
+  type        = string
+  default     = "10.42.0.0/16"
+}
+
+variable "availability_zones" {
+  description = "Two AZs for the public ALB subnets and internal ECS application subnets."
+  type        = map(string)
+  default = {
+    a = "il-central-1a"
+    b = "il-central-1b"
+  }
+}
+
+variable "public_subnet_cidrs" {
+  description = "Public subnet CIDRs for the internet-facing ALB."
+  type        = map(string)
+  default = {
+    a = "10.42.0.0/24"
+    b = "10.42.1.0/24"
+  }
+}
+
+variable "app_subnet_cidrs" {
+  description = "Internal application subnet CIDRs for ECS tasks."
+  type        = map(string)
+  default = {
+    a = "10.42.10.0/24"
+    b = "10.42.11.0/24"
+  }
+}

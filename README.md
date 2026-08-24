@@ -13,6 +13,11 @@ This is an unofficial educational DevOps fork of [Status-Page](https://github.co
 - [Thursday Terraform baseline](terraform/README.md)
 - [Thursday implementation status — English](docs/THURSDAY_STATUS.md)
 - [Thursday implementation status — Russian](docs/THURSDAY_STATUS.ru.md)
+- [Changelog](CHANGELOG.md)
+- [Implementation log — English](docs/IMPLEMENTATION_LOG.md)
+- [Implementation log — Russian](docs/IMPLEMENTATION_LOG.ru.md)
+- [Wednesday/Thursday milestone audit — English](docs/MILESTONE_AUDIT.md)
+- [Wednesday/Thursday milestone audit — Russian](docs/MILESTONE_AUDIT.ru.md)
 - [Pinned application source: upstream Status-Page v2.5.1](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1)
 
 The architecture document distinguishes facts derived from the supplied Status-Page source and decisions approved for the AWS target deployment. The infrastructure diagram uses Mermaid and can be viewed in GitHub, GitLab, or a Mermaid-compatible Markdown preview.
