@@ -35,3 +35,11 @@
 **Почему:** это напрямую реализует согласованное размещение: public ALB в `il-central-1a`/`il-central-1b`, private ECS tasks и traffic ALB-to-ECS только через security groups. `create_network = false` предотвращает непроверенное создание VPC resources и network cost, пока IAM/OIDC не завершены.
 
 **Проверка:** прошли `terraform fmt -recursive`, `terraform validate` и `docker compose config --quiet`. Этот change не создал AWS network resource.
+
+## 2026-08-24 — Оформление репозитория и навигация по документации
+
+**Решение:** переработать основной English README и его Russian counterpart как параллельные точки входа в проект с явными ссылками на документы на соответствующем языке.
+
+**Почему:** читатель должен видеть назначение проекта, подтверждённый статус, быстрый старт и authoritative documentation без поиска по репозиторию. Russian README не должна отправлять читателя к English documents, когда перевод существует.
+
+**Реализация:** добавлены project icon, CI/licence/upstream badges, краткая navigation, честная таблица delivery status и матрица English/Russian documentation. Стиль README использует полезные паттерны Awesome README: понятную visual identity, короткое описание, badges, navigation, quick start и структурированные ссылки.

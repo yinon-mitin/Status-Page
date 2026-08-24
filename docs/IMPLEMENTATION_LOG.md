@@ -35,3 +35,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Why:** this directly implements the agreed placement: public ALB across `il-central-1a`/`il-central-1b`, private ECS tasks, and security-group-only ALB-to-ECS traffic. Keeping `create_network = false` prevents unreviewed VPC resources and network cost while IAM/OIDC remains unresolved.
 
 **Verification:** `terraform fmt -recursive`, `terraform validate`, and `docker compose config --quiet` passed. No AWS network resource was created by this change.
+
+## 2026-08-24 — Repository presentation and documentation navigation
+
+**Decision:** redesign the English primary README and its Russian counterpart as parallel project entry points, with explicit language-specific document links.
+
+**Why:** readers should see the project purpose, verified status, quick start, and authoritative documentation without searching the repository. The Russian README must not merely point to English documents when a Russian translation exists.
+
+**Implementation:** added a project icon, CI/licence/upstream badges, concise navigation, an honest delivery-status table, and an English/Russian documentation matrix. The README style follows the useful patterns collected by Awesome README: a clear visual identity, short description, badges, navigation, quick start, and structured links.

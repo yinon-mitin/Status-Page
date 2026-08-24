@@ -8,6 +8,11 @@ All notable project changes are recorded here. This project follows the spirit o
 
 - Excluded Git metadata from the Docker build context to keep local and CI image builds small and reproducible.
 - Added disabled-by-default VPC, public/internal subnet, route-table, and ALB/ECS security-group Terraform code for the next network phase.
+- Redesigned both README files with a project icon, badges, concise navigation, status table, quick start, and parallel English/Russian documentation links.
+
+### Added
+
+- Project icon at `assets/statuspage-devops-icon.png`.
 
 ### Verified
 

@@ -1,30 +1,27 @@
-# Финальный DevOps-проект Yinon
+<p align="center"><img src="assets/statuspage-devops-icon.png" width="150" alt="Иконка Status-Page DevOps"></p>
 
-Это неофициальный учебный DevOps fork [Status-Page](https://github.com/Status-Page/Status-Page). Он содержит исходный код приложения и реализацию Docker, AWS ECS/Fargate, Terraform и CI/CD.
+<h1 align="center">Status-Page DevOps</h1>
 
-## Документация
+<p align="center">AWS-инфраструктура для open-source приложения Status-Page.</p>
 
-- [AWS-архитектура — English](docs/ARCHITECTURE.md)
-- [AWS-архитектура — Russian](docs/ARCHITECTURE.ru.md)
-- [Индекс технологий — English](docs/TECHNOLOGY_INDEX.md)
-- [Индекс технологий — Russian](docs/TECHNOLOGY_INDEX.ru.md)
-- [Интерактивный обзор проекта и инфраструктуры](docs/PROJECT_INFRASTRUCTURE.html)
-- [Происхождение upstream и политика сопровождения](UPSTREAM.ru.md)
-- [Terraform baseline на четверг](terraform/README.md)
-- [Статус реализации на четверг — English](docs/THURSDAY_STATUS.md)
-- [Статус реализации на четверг — Russian](docs/THURSDAY_STATUS.ru.md)
-- [Changelog](CHANGELOG.md)
-- [Журнал реализации — English](docs/IMPLEMENTATION_LOG.md)
-- [Журнал реализации — Russian](docs/IMPLEMENTATION_LOG.ru.md)
-- [Аудит milestone среды/четверга — English](docs/MILESTONE_AUDIT.md)
-- [Аудит milestone среды/четверга — Russian](docs/MILESTONE_AUDIT.ru.md)
-- [Зафиксированный application source: upstream Status-Page v2.5.1](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1)
+<p align="center">
+  <a href="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml"><img src="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml/badge.svg?branch=main" alt="Validate workflow"></a>
+  <a href="https://github.com/yinon-mitin/Status-Page/blob/main/LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Лицензия Apache 2.0"></a>
+  <a href="https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1"><img src="https://img.shields.io/badge/upstream-v2.5.1-1f6feb" alt="Upstream v2.5.1"></a>
+</p>
 
-Документ отделяет факты, взятые из исходника Status-Page, от согласованных решений для AWS deployment. Инфраструктурная диаграмма использует Mermaid и отображается в GitHub, GitLab или Markdown-просмотрщиках с поддержкой Mermaid.
+<p align="center"><a href="#быстрый-старт">Быстрый старт</a> · <a href="#статус-проекта">Статус</a> · <a href="#документация">Документация</a> · <a href="README.md">English version</a></p>
 
-## Локальный Docker milestone
+> [!WARNING]
+> Это неофициальный учебный fork. Upstream Status-Page архивирован; репозиторий закреплён на release `v2.5.1` и не заявляет upstream support.
 
-Milestone на среду реализован: Docker Compose запускает NGINX, Django/Gunicorn, RQ Worker, RQ Scheduler, PostgreSQL и Redis.
+## Для чего нужен этот репозиторий
+
+Fork показывает практический путь от source-derived Status-Page runtime—Django/Gunicorn, RQ Worker, RQ Scheduler, PostgreSQL, Redis и NGINX—к AWS-дизайну с ECR, ECS Fargate, ALB, RDS, ElastiCache, Secrets Manager, Terraform, CloudWatch и GitHub Actions.
+
+## Быстрый старт
+
+Требования: Docker Desktop и Docker Compose.
 
 ```bash
 cp .env.example .env
@@ -33,16 +30,47 @@ curl http://localhost:8081/healthz
 docker compose ps
 ```
 
-Приложение доступно по `http://localhost:8081`. Для остановки используйте `docker compose down`; добавляйте `-v` только при намеренном удалении локальных volumes PostgreSQL, Redis, static и media. Чтобы выбрать другой host port, задайте согласованные `STATUSPAGE_HTTP_PORT` и `STATUS_PAGE_SITE_URL` в `.env`.
+Открой [http://localhost:8081](http://localhost:8081). Для остановки используй `docker compose down`; добавляй `-v` только при намеренном удалении локальных данных.
 
-## Целевая архитектура в одном абзаце
+## Статус проекта
 
-Docker → Amazon ECR → Amazon ECS Fargate; internet-facing ALB находится в двух public subnets, а ECS — во внутренних application subnets. RDS PostgreSQL имеет setting publicly accessible, но port 5432 разрешён только от ECS security group; ElastiCache Redis остаётся private. NGINX работает внутри web task, платформу дополняют Secrets Manager, IAM, CloudWatch, Terraform и GitHub Actions.
+| Направление | Статус | Подтверждение |
+| --- | --- | --- |
+| Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
+| ECR | Применено | Immutable app/NGINX repositories, scan-on-push и lifecycle policies. |
+| ECS foundation | Применено | Cluster и CloudWatch log groups существуют; services выключены. |
+| ECS roles / task definitions | Заблокировано IAM | Текущий identity не имеет `iam:ListRolePolicies`. |
+| Network Terraform | Код готов, не применён | Защищён `create_network = false`. |
+| ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |
 
-## Milestone на четверг
+## Документация
 
-ECR/ECS и CI foundations реализованы в коде. Terraform создаёт immutable ECR repositories, ECS cluster, task definitions, CloudWatch log groups и least-privilege ECS roles. GitHub Actions проверяет Docker/Terraform в pull request и публикует оба image в ECR через GitHub OIDC после настройки repository variables и AWS role. AWS resources не применяются автоматически, а ECS services остаются выключенными, пока не готовы и не проверены network, database, Redis, ALB и Secrets Manager inputs.
+| Тема | English | Русский |
+| --- | --- | --- |
+| AWS architecture | [AWS architecture — English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.md) | [AWS architecture — Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.ru.md) |
+| Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
+| Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
+| Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
+| Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
+| Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |
+| Terraform baseline | [README](https://github.com/yinon-mitin/Status-Page/blob/main/terraform/README.md) | — |
 
-## Политика версии исходника
+См. [CHANGELOG.md](CHANGELOG.md) для истории изменений и [UPSTREAM.ru.md](UPSTREAM.ru.md) для политики исходного кода.
 
-Application source в корне репозитория закреплён на официальном stable upstream release **v2.5.1** от 29 октября 2024, а не на прежнем учебном архиве. Upstream был архивирован в октябре 2025, а заявленная security support завершилась 31 декабря 2025; поэтому финальный проект рассматривает v2.5.1 как фиксированную и проверяемую зависимость, а не активно поддерживаемый продукт.
+## Структура репозитория
+
+```text
+assets/              Иконка проекта и visual assets
+docker/              Entrypoint scripts и NGINX configuration
+docs/                Architecture, audit и implementation logs
+terraform/           AWS ECR, ECS и защищённая network infrastructure
+.github/workflows/   Validation и OIDC-based ECR publishing
+statuspage/          Django source из upstream v2.5.1
+```
+
+## Безопасность и лицензия
+
+- Secret values не коммитятся; runtime secrets предназначены для Secrets Manager.
+- ALB рассчитан на public subnets; ECS tasks остаются internal.
+- RDS планируется с public setting, но ingress только от ECS security group.
+- Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.
