@@ -51,3 +51,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Why:** a successful image build does not prove that the web, database, Redis, worker, scheduler, NGINX, migrations, or `/healthz` work together. This check gives fast feedback without AWS credentials or cloud resource changes.
 
 **Implementation:** CI starts an isolated Compose project on port `18081`, waits for service health, checks NGINX `/healthz` and homepage access, runs `manage.py check`, and removes resources even after failure. The Makefile exposes matching local validation commands.
+
+## 2026-08-24 — RQ end-to-end runtime verification
+
+**Decision:** extend the offline smoke test with a real queue job rather than treating a running worker container as sufficient evidence.
+
+**Why:** the application depends on Redis and RQ for background processing. A container can be running while its broker connection, job serialization, or worker processing is broken.
+
+**Implementation:** `scripts/verify_runtime.py` resolves the Django project root explicitly, enqueues `sum([2, 3])` on the default queue, waits up to 30 seconds for the worker, and fails unless the job returns `5`. Local `make check` and GitHub Actions run the same script.

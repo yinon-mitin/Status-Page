@@ -18,6 +18,7 @@ check:
 	docker compose config --quiet
 	curl --fail --silent --show-error http://localhost:8081/healthz
 	docker compose exec -T web python manage.py check
+	docker compose exec -T web python /opt/status-page/scripts/verify_runtime.py
 
 tf-fmt:
 	terraform -chdir=terraform fmt -recursive

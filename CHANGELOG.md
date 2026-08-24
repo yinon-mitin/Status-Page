@@ -15,6 +15,7 @@ All notable project changes are recorded here. This project follows the spirit o
 - Project icon at `assets/statuspage-devops-icon.png`.
 - Makefile targets for local Compose and Terraform quality checks.
 - Full Docker Compose smoke test in GitHub Actions: health checks, NGINX HTTP, Django system check, and cleanup.
+- RQ end-to-end smoke test that verifies a Django-enqueued job completes through Redis and the worker.
 
 ### Verified
 

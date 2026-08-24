@@ -51,3 +51,11 @@
 **Почему:** успешная сборка image не доказывает, что web, database, Redis, worker, scheduler, NGINX, migrations и `/healthz` работают вместе. Проверка даёт быструю обратную связь без AWS credentials и cloud resource changes.
 
 **Реализация:** CI запускает изолированный Compose project на порту `18081`, ожидает service health, проверяет NGINX `/healthz` и доступ к homepage, выполняет `manage.py check` и удаляет resources даже после failure. Makefile предоставляет аналогичные local validation commands.
+
+## 2026-08-24 — End-to-end проверка RQ runtime
+
+**Решение:** расширить offline smoke test реальной queue job, а не считать running worker container достаточным доказательством.
+
+**Почему:** приложение зависит от Redis и RQ для background processing. Container может быть running, хотя broker connection, job serialization или worker processing уже сломаны.
+
+**Реализация:** `scripts/verify_runtime.py` явно определяет Django project root, ставит `sum([2, 3])` в default queue, ожидает worker до 30 секунд и завершает проверку ошибкой, если job не вернула `5`. Local `make check` и GitHub Actions выполняют одинаковый script.

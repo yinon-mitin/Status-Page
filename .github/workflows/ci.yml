@@ -34,6 +34,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:18081/healthz
           curl --fail --silent --show-error -o /dev/null http://localhost:18081/
           docker compose -p statuspage-ci exec -T web python manage.py check
+          docker compose -p statuspage-ci exec -T web python /opt/status-page/scripts/verify_runtime.py
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
