@@ -10,6 +10,9 @@
 - [Индекс технологий — Russian](docs/TECHNOLOGY_INDEX.ru.md)
 - [Интерактивный обзор проекта и инфраструктуры](docs/PROJECT_INFRASTRUCTURE.html)
 - [Происхождение upstream и политика сопровождения](UPSTREAM.ru.md)
+- [Terraform baseline на четверг](terraform/README.md)
+- [Статус реализации на четверг — English](docs/THURSDAY_STATUS.md)
+- [Статус реализации на четверг — Russian](docs/THURSDAY_STATUS.ru.md)
 - [Зафиксированный application source: upstream Status-Page v2.5.1](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1)
 
 Документ отделяет факты, взятые из исходника Status-Page, от согласованных решений для AWS deployment. Инфраструктурная диаграмма использует Mermaid и отображается в GitHub, GitLab или Markdown-просмотрщиках с поддержкой Mermaid.
@@ -30,6 +33,10 @@ docker compose ps
 ## Целевая архитектура в одном абзаце
 
 Docker → Amazon ECR → Amazon ECS Fargate; internet-facing ALB находится в двух public subnets, а ECS — во внутренних application subnets. RDS PostgreSQL имеет setting publicly accessible, но port 5432 разрешён только от ECS security group; ElastiCache Redis остаётся private. NGINX работает внутри web task, платформу дополняют Secrets Manager, IAM, CloudWatch, Terraform и GitHub Actions.
+
+## Milestone на четверг
+
+ECR/ECS и CI foundations реализованы в коде. Terraform создаёт immutable ECR repositories, ECS cluster, task definitions, CloudWatch log groups и least-privilege ECS roles. GitHub Actions проверяет Docker/Terraform в pull request и публикует оба image в ECR через GitHub OIDC после настройки repository variables и AWS role. AWS resources не применяются автоматически, а ECS services остаются выключенными, пока не готовы и не проверены network, database, Redis, ALB и Secrets Manager inputs.
 
 ## Политика версии исходника
 

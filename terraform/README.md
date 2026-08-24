@@ -1,0 +1,52 @@
+# Thursday Terraform baseline
+
+This directory implements the agreed Thursday milestone: immutable ECR repositories and an ECS Fargate runtime baseline for the Status-Page web, RQ worker, and RQ scheduler processes.
+
+It intentionally does **not** apply infrastructure automatically. The VPC, public ALB subnets, internal application subnets, ECS security group, ALB target group, RDS PostgreSQL, ElastiCache Redis, and Secrets Manager values must be created and reviewed first. The ECS services are disabled by default with `create_services = false`.
+
+## What `terraform apply` creates now
+
+- two private ECR repositories: `${project}-${environment}-app` and `${project}-${environment}-nginx`;
+- immutable SHA-tagged images, scan-on-push, and 30-image lifecycle policies;
+- an ECS cluster with Container Insights;
+- CloudWatch log groups for web, worker, and scheduler;
+- dedicated ECS task and execution roles; the execution role reads only the explicit Secrets Manager ARNs provided to Terraform;
+- an optional GitHub OIDC ECR-publishing role, scoped to `yinon-mitin/Status-Page` on `main` and only the two managed ECR repositories;
+- three Fargate task definitions: web (app + NGINX sidecar), worker, and scheduler.
+
+Set `create_services = true` only after supplying private application subnets, the ECS security-group ID, web target-group ARN, non-secret runtime settings, and Secrets Manager ARNs for `STATUS_PAGE_SECRET_KEY` and `POSTGRES_PASSWORD`.
+
+## Safe first use
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform fmt -recursive
+terraform validate
+terraform plan
+```
+
+Before applying, verify the target account deliberately:
+
+```bash
+aws sts get-caller-identity
+terraform apply
+```
+
+Do not commit `terraform.tfvars`, state files, plans, or secret values.
+
+This account requires an `Owner` tag on taggable resources; the default value is `yinon`. Change `owner` in `terraform.tfvars` if the account's policy requires a different exact value. Before a shared or production deployment, move the local state to an approved remote backend with locking.
+
+## GitHub Actions prerequisites
+
+Create the GitHub OIDC provider once at account level, set its ARN in `terraform.tfvars`, and apply. Then configure repository variables:
+
+| Variable | Required value |
+| --- | --- |
+| `AWS_REGION` | `il-central-1` unless another region is deliberately chosen. |
+| `AWS_ROLE_TO_ASSUME` | ARN of a dedicated GitHub OIDC publishing role. |
+| `ECR_APP_REPOSITORY` | Terraform ECR app repository name, normally `statuspage-dev-app`. |
+| `ECR_NGINX_REPOSITORY` | Terraform ECR NGINX repository name, normally `statuspage-dev-nginx`. |
+
+The publishing role must trust only this repository and `refs/heads/main`, and have permission to obtain an ECR authorization token and push layers/images only to these two repositories. It must not have broad administrator permissions.

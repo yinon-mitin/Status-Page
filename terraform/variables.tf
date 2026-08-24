@@ -1,0 +1,110 @@
+variable "aws_region" {
+  description = "AWS Region for the Thursday ECR/ECS baseline."
+  type        = string
+  default     = "il-central-1"
+}
+
+variable "project" {
+  description = "Short project identifier used in AWS resource names and tags."
+  type        = string
+  default     = "statuspage"
+}
+
+variable "environment" {
+  description = "Deployment environment, for example dev or prod."
+  type        = string
+  default     = "dev"
+}
+
+variable "owner" {
+  description = "Owner value required by the AWS account's resource-creation guardrail."
+  type        = string
+  default     = "yinon"
+}
+
+variable "image_tag" {
+  description = "Immutable application image tag, normally the Git commit SHA published by GitHub Actions."
+  type        = string
+  default     = "bootstrap"
+}
+
+variable "app_image_uri" {
+  description = "Optional full application image URI. When null, Terraform uses the managed ECR application repository and image_tag."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "nginx_image_uri" {
+  description = "Optional full NGINX image URI. When null, Terraform uses the managed ECR NGINX repository and image_tag."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "app_private_subnet_ids" {
+  description = "Private application-subnet IDs for ECS tasks. Required only when create_services is true."
+  type        = list(string)
+  default     = []
+}
+
+variable "ecs_security_group_id" {
+  description = "Security group ID attached to ECS tasks. It must allow port 80 only from the ALB security group. Required only when create_services is true."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "web_target_group_arn" {
+  description = "ALB target group ARN for the NGINX container on port 80. Required only when create_services is true."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "create_services" {
+  description = "Set true only after the VPC, private application subnets, ECS security group, ALB target group, RDS, Redis, and Secrets Manager inputs exist."
+  type        = bool
+  default     = false
+}
+
+variable "desired_count" {
+  description = "Initial desired count for each ECS service. Keep at one until durable media and worker-concurrency constraints are addressed."
+  type        = number
+  default     = 1
+}
+
+variable "runtime_environment" {
+  description = "Non-secret environment values passed to all application containers, such as RDS endpoint, Redis endpoint, allowed hosts, and site URL."
+  type        = map(string)
+  default = {
+    POSTGRES_HOST             = "REPLACE_WITH_RDS_ENDPOINT"
+    POSTGRES_PORT             = "5432"
+    POSTGRES_DB               = "statuspage"
+    POSTGRES_USER             = "statuspage"
+    REDIS_HOST                = "REPLACE_WITH_REDIS_ENDPOINT"
+    REDIS_PORT                = "6379"
+    STATUS_PAGE_ALLOWED_HOSTS = "REPLACE_WITH_ALB_DNS_OR_DOMAIN"
+    STATUS_PAGE_SITE_URL      = "https://REPLACE_WITH_DOMAIN"
+    STATUS_PAGE_TIME_ZONE     = "Asia/Jerusalem"
+  }
+}
+
+variable "runtime_secret_arns" {
+  description = "Map of environment-variable names to Secrets Manager secret ARNs. For a service deployment, include STATUS_PAGE_SECRET_KEY and POSTGRES_PASSWORD at minimum."
+  type        = map(string)
+  default     = {}
+}
+
+variable "github_oidc_provider_arn" {
+  description = "Existing account-level GitHub Actions OIDC provider ARN. When supplied, Terraform creates the narrowly scoped ECR publishing role."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the ECR publishing role."
+  type        = string
+  default     = "yinon-mitin/Status-Page"
+}
