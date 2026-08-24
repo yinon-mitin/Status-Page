@@ -43,3 +43,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Why:** readers should see the project purpose, verified status, quick start, and authoritative documentation without searching the repository. The Russian README must not merely point to English documents when a Russian translation exists.
 
 **Implementation:** added a project icon, CI/licence/upstream badges, concise navigation, an honest delivery-status table, and an English/Russian documentation matrix. The README style follows the useful patterns collected by Awesome README: a clear visual identity, short description, badges, navigation, quick start, and structured links.
+
+## 2026-08-24 — Offline CI smoke test
+
+**Decision:** extend CI from static Compose/build validation to a full local runtime smoke test.
+
+**Why:** a successful image build does not prove that the web, database, Redis, worker, scheduler, NGINX, migrations, or `/healthz` work together. This check gives fast feedback without AWS credentials or cloud resource changes.
+
+**Implementation:** CI starts an isolated Compose project on port `18081`, waits for service health, checks NGINX `/healthz` and homepage access, runs `manage.py check`, and removes resources even after failure. The Makefile exposes matching local validation commands.

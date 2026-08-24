@@ -25,12 +25,11 @@ Fork показывает практический путь от source-derived 
 
 ```bash
 cp .env.example .env
-docker compose up --build -d
-curl http://localhost:8081/healthz
-docker compose ps
+make up
+make check
 ```
 
-Открой [http://localhost:8081](http://localhost:8081). Для остановки используй `docker compose down`; добавляй `-v` только при намеренном удалении локальных данных.
+Открой [http://localhost:8081](http://localhost:8081). Используй `make logs` для просмотра services и `make down` для остановки; добавляй `-v` к Docker Compose только при намеренном удалении локальных данных.
 
 ## Статус проекта
 

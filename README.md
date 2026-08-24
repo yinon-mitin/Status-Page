@@ -25,12 +25,11 @@ Prerequisites: Docker Desktop and Docker Compose.
 
 ```bash
 cp .env.example .env
-docker compose up --build -d
-curl http://localhost:8081/healthz
-docker compose ps
+make up
+make check
 ```
 
-Open [http://localhost:8081](http://localhost:8081). Stop with `docker compose down`; use `-v` only when intentionally deleting local data.
+Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect services and `make down` to stop them; add `-v` to Docker Compose only when intentionally deleting local data.
 
 ## Project status
 

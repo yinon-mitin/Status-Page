@@ -43,3 +43,11 @@
 **Почему:** читатель должен видеть назначение проекта, подтверждённый статус, быстрый старт и authoritative documentation без поиска по репозиторию. Russian README не должна отправлять читателя к English documents, когда перевод существует.
 
 **Реализация:** добавлены project icon, CI/licence/upstream badges, краткая navigation, честная таблица delivery status и матрица English/Russian documentation. Стиль README использует полезные паттерны Awesome README: понятную visual identity, короткое описание, badges, navigation, quick start и структурированные ссылки.
+
+## 2026-08-24 — Offline CI smoke test
+
+**Решение:** расширить CI со статической Compose/build validation до полного local runtime smoke test.
+
+**Почему:** успешная сборка image не доказывает, что web, database, Redis, worker, scheduler, NGINX, migrations и `/healthz` работают вместе. Проверка даёт быструю обратную связь без AWS credentials и cloud resource changes.
+
+**Реализация:** CI запускает изолированный Compose project на порту `18081`, ожидает service health, проверяет NGINX `/healthz` и доступ к homepage, выполняет `manage.py check` и удаляет resources даже после failure. Makefile предоставляет аналогичные local validation commands.

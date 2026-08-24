@@ -12,6 +12,9 @@ jobs:
   validate:
     name: Docker and Terraform validation
     runs-on: ubuntu-latest
+    env:
+      STATUSPAGE_HTTP_PORT: 18081
+      STATUS_PAGE_SITE_URL: http://localhost:18081
 
     steps:
       - name: Check out repository
@@ -22,6 +25,15 @@ jobs:
 
       - name: Build local runtime images
         run: docker compose build
+
+      - name: Start the complete Compose stack
+        run: docker compose -p statuspage-ci up -d --wait --wait-timeout 120
+
+      - name: Smoke test reverse proxy and Django
+        run: |
+          curl --fail --silent --show-error http://localhost:18081/healthz
+          curl --fail --silent --show-error -o /dev/null http://localhost:18081/
+          docker compose -p statuspage-ci exec -T web python manage.py check
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
@@ -36,3 +48,7 @@ jobs:
 
       - name: Validate Terraform
         run: terraform -chdir=terraform validate
+
+      - name: Clean up Compose resources
+        if: always()
+        run: docker compose -p statuspage-ci down -v --remove-orphans
