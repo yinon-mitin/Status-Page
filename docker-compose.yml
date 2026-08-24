@@ -1,0 +1,109 @@
+name: statuspage
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: statuspage-app:local
+  env_file:
+    - path: .env
+      required: false
+  environment: &app-environment
+    POSTGRES_DB: ${POSTGRES_DB:-statuspage}
+    POSTGRES_USER: ${POSTGRES_USER:-statuspage}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statuspage-local}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    STATUS_PAGE_ALLOWED_HOSTS: ${STATUS_PAGE_ALLOWED_HOSTS:-localhost,127.0.0.1,web,nginx}
+    STATUS_PAGE_SITE_URL: ${STATUS_PAGE_SITE_URL:-http://localhost:8081}
+    STATUS_PAGE_SECRET_KEY: ${STATUS_PAGE_SECRET_KEY:-local-development-key-change-before-deployment}
+    STATUS_PAGE_TIME_ZONE: ${STATUS_PAGE_TIME_ZONE:-Asia/Jerusalem}
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-statuspage}
+      POSTGRES_USER: ${POSTGRES_USER:-statuspage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statuspage-local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-statuspage} -d ${POSTGRES_DB:-statuspage}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static_data:/srv/status-page/static
+      - media_data:/srv/status-page/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: statuspage-nginx:local
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "${STATUSPAGE_HTTP_PORT:-8081}:80"
+    volumes:
+      - static_data:/srv/status-page/static:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    command: ["python", "manage.py", "rqworker", "high", "default", "low"]
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - media_data:/srv/status-page/media
+
+  scheduler:
+    <<: *app
+    command: ["python", "manage.py", "rqscheduler"]
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_data:
+  media_data:

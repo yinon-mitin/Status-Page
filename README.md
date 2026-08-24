@@ -1,62 +1,36 @@
-<div align="center">
-    <img alt="Status Page" src="https://cdn.herrtxbias.net/status-page/logo_gray/logo_small.png"></a>
-</div>
-<br />
-<p align="center">
-    <a href="https://github.com/Status-Page/Status-Page"><img alt="GitHub license" src="https://img.shields.io/github/license/Status-Page/Status-Page"></a>
-    <a href="https://github.com/Status-Page/Status-Page/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/Status-Page/Status-Page"></a>
-    <a href="https://github.com/Status-Page/Status-Page/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Status-Page/Status-Page"></a>
-    <a href="https://github.com/Status-Page/Status-Page/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/Status-Page/Status-Page"></a>
-    <a href="https://github.com/Status-Page/Status-Page/releases"><img alt="GitHub latest releas" src="https://img.shields.io/github/release/Status-Page/Status-Page"></a>
-    <a href="https://www.codacy.com/gh/Status-Page/Status-Page/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Status-Page/Status-Page&amp;utm_campaign=Badge_Grade"><img src="https://app.codacy.com/project/badge/Grade/250b53ad99ca432cbac8d761a975b34d"/></a>
-</p>
+# Yinon Final DevOps Project
 
-## Overview
-- Components
-- Report incidents
-- JSON API
-- Metrics
-- Two Factor Authentication
-- Markdown support in incident / maintenance messages
-- Subscriptions for Notifications
-- Custom Plugins
-
-## Requirements
-| Dependency       | Minimum Version | Optional |
-|------------------|-----------------|----------|
-| Python           | 3.10            | no       |
-| PostgreSQL       | 12              | no       |
-| Redis            | 4.0             | no       |
-| SMTP Mail Server | ---             | yes      |
-
-## Installation & Updates
-Please have a look at our [Documentation](https://docs.status-page.dev/).
-
-## Public Demo
-We have a public Demo available: https://demo.status-page.dev
-
-## Versioning
-We use semantic versioning. A version number has the following structure:
-````
-v 1 . 0 . 0
-  ^   ^   ^
-  |   |   |
-  |   |   Patch (Bug fixes)
-  |   |
-  |   Minor (No breaking changes to the Software, e.g. adding new features)
-  |
-  Major (Breaking changes to the Software)
-````
+This is an unofficial educational DevOps fork of [Status-Page](https://github.com/Status-Page/Status-Page). It contains the application source together with a Docker, AWS ECS/Fargate, Terraform, and CI/CD implementation.
 
 ## Documentation
-You can find the Documentation [here](https://docs.status-page.dev/).
 
-## Other Licenses and Acknowledgements
-### Tailwind UI
-We are using Tailwind UI Components in this App. You are **NOT** allowed to reuse these Components in your own App!
+- [AWS architecture — English](docs/ARCHITECTURE.md)
+- [AWS architecture — Russian](docs/ARCHITECTURE.ru.md)
+- [Technology index — English](docs/TECHNOLOGY_INDEX.md)
+- [Technology index — Russian](docs/TECHNOLOGY_INDEX.ru.md)
+- [Interactive project and infrastructure overview](docs/PROJECT_INFRASTRUCTURE.html)
+- [Upstream provenance and maintenance policy](UPSTREAM.md)
+- [Pinned application source: upstream Status-Page v2.5.1](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1)
 
-See their [License](https://www.notion.so/Tailwind-UI-License-644418bb34ad4fa29aac9b82e956a867) for more information.
+The architecture document distinguishes facts derived from the supplied Status-Page source and decisions approved for the AWS target deployment. The infrastructure diagram uses Mermaid and can be viewed in GitHub, GitLab, or a Mermaid-compatible Markdown preview.
 
-### NetBox
-As you may have noticed, the base structure for many parts of the app is derived
-from [NetBox](https://github.com/netbox-community/netbox), this made development much easier.
+## Local Docker milestone
+
+The Wednesday milestone is implemented: Docker Compose runs NGINX, Django/Gunicorn, RQ Worker, RQ Scheduler, PostgreSQL, and Redis.
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+curl http://localhost:8081/healthz
+docker compose ps
+```
+
+Open `http://localhost:8081`. Stop the stack with `docker compose down`; add `-v` only when intentionally deleting local PostgreSQL, Redis, static, and media volumes. Set `STATUSPAGE_HTTP_PORT` and the matching `STATUS_PAGE_SITE_URL` in `.env` to use another host port.
+
+## Target architecture at a glance
+
+Docker → Amazon ECR → Amazon ECS Fargate, with an internet-facing ALB in two public subnets and ECS in internal application subnets. RDS PostgreSQL is configured publicly accessible but allows port 5432 only from the ECS security group; ElastiCache Redis remains private. NGINX runs inside the web task, with Secrets Manager, IAM, CloudWatch, Terraform, and GitHub Actions completing the platform.
+
+## Source version policy
+
+The application at the repository root is pinned to the official stable upstream release **v2.5.1** (29 October 2024), rather than the earlier instructional archive. Upstream was archived in October 2025 and its stated security support ended on 31 December 2025; the final project therefore treats v2.5.1 as a fixed, auditable dependency rather than an actively maintained product.

@@ -1,3 +1,9 @@
+.DS_Store
+.env
+.idea
+.coverage
+.vscode
+__pycache__
 *.pyc
 *.swp
 npm-debug.log*
@@ -8,12 +14,8 @@ yarn-error.log*
 !/statuspage/project-static/docs/.gitkeep
 /statuspage/static
 /statuspage/statuspage/configuration.py
+!/statuspage/statuspage/configuration.py
 local_requirements.txt
 gunicorn.py
 !/contrib/gunicorn.py
 /venv/
-.DS_Store
-.idea
-.coverage
-.vscode
-__pycache__

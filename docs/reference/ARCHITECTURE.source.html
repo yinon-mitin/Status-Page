@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status-Page — Architecture</title>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#d8dde4;
+  --text:#141a21; --muted:#5b6672; --faint:#8a94a0;
+  --c-client:#7c5cff; --c-edge:#0ea5e9; --c-app:#10b981; --c-async:#f59e0b;
+  --c-data:#e0801a; --c-ext:#e11d63; --c-plugin:#8b5cf6;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -12px rgba(16,24,40,.18);
+  --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --surface:#151b23; --surface-2:#1c232d; --border:#2b333f;
+    --text:#e6edf3; --muted:#9aa7b4; --faint:#6e7b89;
+    --c-client:#a78bfa; --c-edge:#38bdf8; --c-app:#34d399; --c-async:#fbbf24;
+    --c-data:#f0a55a; --c-ext:#f472b6; --c-plugin:#c4b5fd;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#d8dde4;
+  --text:#141a21; --muted:#5b6672; --faint:#8a94a0;
+  --c-client:#7c5cff; --c-edge:#0ea5e9; --c-app:#10b981; --c-async:#f59e0b;
+  --c-data:#e0801a; --c-ext:#e11d63; --c-plugin:#8b5cf6;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -12px rgba(16,24,40,.18);
+}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --surface:#151b23; --surface-2:#1c232d; --border:#2b333f;
+  --text:#e6edf3; --muted:#9aa7b4; --faint:#6e7b89;
+  --c-client:#a78bfa; --c-edge:#38bdf8; --c-app:#34d399; --c-async:#fbbf24;
+  --c-data:#f0a55a; --c-ext:#f472b6; --c-plugin:#c4b5fd;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 96px}
+
+/* ---------- header ---------- */
+header.masthead{
+  border-bottom:1px solid var(--border); background:var(--surface);
+  padding:40px 0 28px; margin-bottom:36px;
+}
+header.masthead .wrap{padding-bottom:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:10px 0 8px;letter-spacing:-.02em}
+.sub{color:var(--muted);max-width:78ch;margin:0 0 20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font:600 12px/1 var(--mono); padding:7px 10px; border-radius:999px;
+  border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
+}
+.chip b{color:var(--text);font-weight:700}
+
+/* ---------- theme toggle ---------- */
+#themeBtn{
+  position:fixed; top:16px; right:16px; z-index:50;
+  border:1px solid var(--border); background:var(--surface); color:var(--muted);
+  border-radius:999px; padding:8px 14px; font:600 12px/1 inherit; cursor:pointer;
+  box-shadow:var(--shadow);
+}
+#themeBtn:hover{color:var(--text)}
+
+/* ---------- toc ---------- */
+nav.toc{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:18px 22px; margin-bottom:40px; box-shadow:var(--shadow);
+}
+nav.toc h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+nav.toc ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 24px;counter-reset:t}
+nav.toc li{counter-increment:t}
+nav.toc a{color:var(--text);text-decoration:none;font-size:14px;display:block;padding:4px 0;border-bottom:1px solid transparent}
+nav.toc a::before{content:counter(t,decimal-leading-zero) "  ";color:var(--faint);font:600 12px var(--mono)}
+nav.toc a:hover{border-bottom-color:var(--border);color:var(--c-edge)}
+
+/* ---------- sections ---------- */
+section{margin:0 0 56px;scroll-margin-top:20px}
+h2.sec{
+  font-size:22px;letter-spacing:-.01em;margin:0 0 6px;padding-bottom:10px;
+  border-bottom:2px solid var(--border);display:flex;align-items:baseline;gap:12px;
+}
+h2.sec span.num{font:700 13px var(--mono);color:var(--c-edge)}
+h3{font-size:16px;margin:28px 0 10px;letter-spacing:-.01em}
+h4{font-size:13px;margin:20px 0 8px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+p{margin:0 0 14px;max-width:88ch}
+.lede{color:var(--muted);margin-bottom:22px;max-width:88ch}
+code{font:500 13px var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+a{color:var(--c-edge)}
+
+/* ---------- figure / svg ---------- */
+figure{margin:22px 0 26px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.scroller{overflow-x:auto;padding:20px}
+figure svg{display:block;min-width:760px;width:100%;height:auto}
+figcaption{padding:12px 20px;border-top:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;padding:12px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+svg .mono{font-family:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace}
+svg .t{fill:var(--text)}
+svg .m{fill:var(--muted)}
+svg .f{fill:var(--faint)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);margin:18px 0 26px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+thead th{background:var(--surface-2);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+td.mono,th.mono{font:500 12.5px var(--mono)}
+.nowrap{white-space:nowrap}
+
+/* ---------- cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 26px}
+.card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent,var(--border));border-radius:10px;padding:14px 16px;box-shadow:var(--shadow)}
+.card h5{margin:0 0 3px;font:700 14px var(--mono);letter-spacing:-.01em}
+.card .role{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent,var(--muted));font-weight:700;margin-bottom:8px}
+.card p{font-size:13px;color:var(--muted);margin:0 0 8px}
+.card ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--muted)}
+.card ul li{margin-bottom:3px}
+.card ul li b{color:var(--text);font-weight:600;font-family:var(--mono);font-size:12px}
+
+/* ---------- callouts ---------- */
+.note{border:1px solid var(--border);border-left:3px solid var(--c-async);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0 26px;box-shadow:var(--shadow)}
+.note h5{margin:0 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--c-async)}
+.note ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+.note ul li{margin-bottom:6px}
+.note ul li b{color:var(--text)}
+
+/* ---------- flow steps ---------- */
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0 26px}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 14px 42px;border-left:1px solid var(--border);margin-left:13px}
+ol.steps li:last-child{border-left-color:transparent}
+ol.steps li::before{
+  content:counter(s);position:absolute;left:-13px;top:-2px;width:26px;height:26px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  font:700 12px var(--mono);display:grid;place-items:center;
+}
+ol.steps li b{font-family:var(--mono);font-size:13px}
+ol.steps li span{display:block;color:var(--muted);font-size:13.5px}
+
+footer{border-top:1px solid var(--border);padding-top:20px;color:var(--faint);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<button id="themeBtn" type="button">◐ Theme</button>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Architecture Reference</div>
+    <h1>Status-Page — System Architecture</h1>
+    <p class="sub">
+      Self-hosted service status &amp; incident communication platform. A monolithic Django application
+      serving a public status page and an operator dashboard, backed by PostgreSQL for state, Redis for
+      caching and a job queue, and RQ workers for all asynchronous and scheduled work.
+    </p>
+    <div class="chips">
+      <span class="chip"><b>Django</b> 4.1.4</span>
+      <span class="chip"><b>Python</b> ≥ 3.10</span>
+      <span class="chip"><b>PostgreSQL</b> ≥ 10</span>
+      <span class="chip"><b>Redis</b> ≥ 4.0</span>
+      <span class="chip"><b>Gunicorn</b> + NGINX</span>
+      <span class="chip"><b>django-rq</b> / rq-scheduler</span>
+      <span class="chip"><b>DRF</b> 3.14 + drf-yasg</span>
+      <span class="chip"><b>Tailwind</b> + Alpine + htmx</span>
+      <span class="chip"><b>Pattern</b> modular monolith</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#topology">Runtime topology</a></li>
+    <li><a href="#frontend">Frontend layer</a></li>
+    <li><a href="#backend">Backend layer</a></li>
+    <li><a href="#data">Data layer &amp; ERD</a></li>
+    <li><a href="#async">Async &amp; scheduled work</a></li>
+    <li><a href="#external">External integrations</a></li>
+    <li><a href="#security">Security &amp; identity</a></li>
+    <li><a href="#matrix">Connection matrix</a></li>
+    <li><a href="#notes">Architectural notes</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ 1 -->
+<section id="topology">
+  <h2 class="sec"><span class="num">01</span> Runtime topology</h2>
+  <p class="lede">
+    Three processes make up the application tier, all on the same host and all sharing one PostgreSQL
+    database and one Redis instance. NGINX terminates TLS, serves collected static assets directly from
+    disk, and reverse-proxies everything else to Gunicorn on <code>127.0.0.1:8001</code>. No component of
+    the system is horizontally partitioned — scale-out means running more Gunicorn workers or more RQ workers
+    against the same backing services.
+  </p>
+
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 1160 770" role="img" aria-label="Runtime topology diagram">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/>
+          </marker>
+        </defs>
+        <style>
+          .box{fill:var(--surface);stroke-width:1.5;rx:9}
+          .hd{font-weight:700;font-size:14px}
+          .sm{font-size:11.5px}
+          .lnk{fill:none;stroke:var(--faint);stroke-width:1.6;marker-end:url(#ar)}
+          .lbl{font-size:10.5px;fill:var(--faint)}
+        </style>
+
+        <!-- row 1: clients -->
+        <rect class="box" x="70"  y="24" width="250" height="62" stroke="var(--c-client)"/>
+        <text class="t hd" x="86" y="50">Public visitor</text>
+        <text class="m sm" x="86" y="70">Browser · unauthenticated status page</text>
+
+        <rect class="box" x="455" y="24" width="250" height="62" stroke="var(--c-client)"/>
+        <text class="t hd" x="471" y="50">Operator / admin</text>
+        <text class="m sm" x="471" y="70">Browser · dashboard, Django admin</text>
+
+        <rect class="box" x="840" y="24" width="250" height="62" stroke="var(--c-client)"/>
+        <text class="t hd" x="856" y="50">API client</text>
+        <text class="m sm" x="856" y="70">CI, scripts, integrations · REST</text>
+
+        <path class="lnk" d="M195,86 V113 H400 V138"/>
+        <path class="lnk" d="M580,86 V138"/>
+        <path class="lnk" d="M965,86 V113 H760 V138"/>
+        <text class="lbl" x="600" y="108">HTTPS 443</text>
+
+        <!-- row 2: nginx -->
+        <rect class="box" x="330" y="140" width="500" height="66" stroke="var(--c-edge)"/>
+        <text class="t hd" x="350" y="167">NGINX  <tspan class="f mono" font-size="11">(or Apache · contrib/nginx.conf)</tspan></text>
+        <text class="m sm" x="350" y="188">TLS termination · HTTP→HTTPS · serves /static/ from disk · client_max_body_size 25m</text>
+
+        <path class="lnk" d="M580,206 V240 H285 V270"/>
+        <text class="lbl" x="380" y="234">proxy_pass 127.0.0.1:8001 · X-Forwarded-Proto/Host</text>
+
+        <!-- row 3: application tier -->
+        <rect x="40" y="232" width="1080" height="196" rx="12" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text class="f" x="56" y="252" font-size="11" font-weight="700" letter-spacing=".08em">APPLICATION TIER — systemd, user <tspan class="mono">status-page</tspan>, /opt/status-page</text>
+
+        <rect class="box" x="70" y="270" width="430" height="140" stroke="var(--c-app)"/>
+        <text class="t hd" x="90" y="296">Gunicorn → Django 4.1 (WSGI)</text>
+        <text class="m sm" x="90" y="318">status-page.service · statuspage.wsgi</text>
+        <text class="m sm" x="90" y="336">5 workers × 3 threads · timeout 120 · max_requests 5000</text>
+        <text class="m sm" x="90" y="354">Serves: public page, dashboard, REST API, /media/</text>
+        <text class="m sm" x="90" y="372">Apps: components · incidents · maintenances · metrics</text>
+        <text class="m sm" x="90" y="390">      subscribers · users · extras · utilities · plugins</text>
+
+        <rect class="box" x="530" y="270" width="280" height="140" stroke="var(--c-async)"/>
+        <text class="t hd" x="550" y="296">RQ Worker</text>
+        <text class="m sm" x="550" y="318">status-page-rq.service</text>
+        <text class="m sm" x="550" y="336">manage.py rqworker high default low</text>
+        <text class="m sm" x="550" y="354">Executes: e-mail fan-out, maintenance</text>
+        <text class="m sm" x="550" y="372">automation, housekeeping, plugin polls</text>
+        <text class="m sm" x="550" y="390">Job timeout 300 s</text>
+
+        <rect class="box" x="840" y="270" width="250" height="140" stroke="var(--c-async)"/>
+        <text class="t hd" x="860" y="296">RQ Scheduler</text>
+        <text class="m sm" x="860" y="318">status-page-scheduler.service</text>
+        <text class="m sm" x="860" y="336">manage.py rqscheduler</text>
+        <text class="m sm" x="860" y="354">Cron registration bootstrapped</text>
+        <text class="m sm" x="860" y="372">by queuing/apps.py at startup</text>
+        <text class="m sm" x="860" y="390">Enqueues onto <tspan class="mono">default</tspan></text>
+
+        <!-- row 4: data -->
+        <rect class="box" x="70"  y="500" width="280" height="84" stroke="var(--c-data)"/>
+        <text class="t hd" x="90" y="527">Redis — DB 1</text>
+        <text class="m sm" x="90" y="548">django-redis cache backend</text>
+        <text class="m sm" x="90" y="566">Dynamic config, rendered fragments · Sentinel-capable</text>
+
+        <rect class="box" x="430" y="500" width="300" height="84" stroke="var(--c-data)"/>
+        <text class="t hd" x="450" y="527">PostgreSQL</text>
+        <text class="m sm" x="450" y="548">psycopg2 · db <tspan class="mono">status-page</tspan> · CONN_MAX_AGE 300</text>
+        <text class="m sm" x="450" y="566">System of record for every model</text>
+
+        <rect class="box" x="790" y="500" width="280" height="84" stroke="var(--c-data)"/>
+        <text class="t hd" x="810" y="527">Redis — DB 0</text>
+        <text class="m sm" x="810" y="548">RQ broker · queues high / default / low</text>
+        <text class="m sm" x="810" y="566">Job payloads, results, scheduler ZSET</text>
+
+        <path class="lnk" d="M140,410 V460 H210 V498"/>
+        <text class="lbl" x="150" y="454">cache get/set</text>
+        <path class="lnk" d="M320,410 V472 H560 V498"/>
+        <text class="lbl" x="330" y="466">SQL 5432</text>
+        <path class="lnk" stroke-dasharray="4 3" d="M470,410 V440 H890 V498"/>
+        <text class="lbl" x="600" y="434">enqueue(send_mail) from web process</text>
+        <path class="lnk" d="M600,410 V498"/>
+        <text class="lbl" x="608" y="462">SQL</text>
+        <path class="lnk" d="M700,410 V498"/>
+        <text class="lbl" x="708" y="484">dequeue</text>
+        <path class="lnk" d="M965,410 V498"/>
+        <text class="lbl" x="973" y="462">schedule / enqueue</text>
+
+        <!-- egress bus -->
+        <path class="lnk" style="marker-end:none" d="M810,384 H1130 V622 H210"/>
+        <path class="lnk" d="M210,622 V648"/>
+        <path class="lnk" d="M580,622 V648"/>
+        <path class="lnk" d="M930,622 V648"/>
+        <text class="lbl" x="700" y="614">outbound egress — worker process only</text>
+
+        <!-- row 5: external -->
+        <rect class="box" x="70"  y="650" width="280" height="80" stroke="var(--c-ext)"/>
+        <text class="t hd" x="90" y="677">SMTP relay</text>
+        <text class="m sm" x="90" y="698">Subscriber verification &amp; notification mail</text>
+        <text class="m sm" x="90" y="716">TLS/SSL optional · optional dependency</text>
+
+        <rect class="box" x="430" y="650" width="300" height="80" stroke="var(--c-ext)"/>
+        <text class="t hd" x="450" y="677">UptimeRobot API</text>
+        <text class="m sm" x="450" y="698">POST api.uptimerobot.com/v2/getMonitors</text>
+        <text class="m sm" x="450" y="716">plugin <tspan class="mono">sp_uptimerobot</tspan> · every minute</text>
+
+        <rect class="box" x="790" y="650" width="280" height="80" stroke="var(--c-ext)"/>
+        <text class="t hd" x="810" y="677">Atlassian Statuspage</text>
+        <text class="m sm" x="810" y="698">GET https://&lt;domain&gt;/api/v2/components.json</text>
+        <text class="m sm" x="810" y="716">plugin <tspan class="mono">sp_external_status_providers</tspan></text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--c-client)"></i>Clients</span>
+      <span><i style="background:var(--c-edge)"></i>Edge / reverse proxy</span>
+      <span><i style="background:var(--c-app)"></i>Application</span>
+      <span><i style="background:var(--c-async)"></i>Async workers</span>
+      <span><i style="background:var(--c-data)"></i>Data stores</span>
+      <span><i style="background:var(--c-ext)"></i>External services</span>
+      <span>— — — dashed = asynchronous / fire-and-forget</span>
+    </div>
+    <figcaption>
+      <b>Fig. 1</b> — Deployment topology. All three application processes are peers over the same Postgres and Redis;
+      the only inbound path is NGINX → Gunicorn. Every outbound call to the internet (SMTP, UptimeRobot, Atlassian)
+      originates from the RQ worker, never from a request-serving thread.
+    </figcaption>
+  </figure>
+
+  <h3>Request lifecycle</h3>
+  <ol class="steps">
+    <li><b>NGINX</b><span>Terminates TLS. <code>/static/</code> is an alias to <code>/opt/status-page/statuspage/static/</code> and never reaches Django. Everything else is proxied with <code>X-Forwarded-Proto</code>, honoured by <code>SECURE_PROXY_SSL_HEADER</code>.</span></li>
+    <li><b>Gunicorn worker</b><span>Hands the WSGI request to <code>statuspage.wsgi</code>. Each worker holds a persistent Postgres connection for up to 300 s.</span></li>
+    <li><b>Middleware chain</b><span>security → session → common → CSRF → auth → <code>OTPMiddleware</code> → messages → clickjacking → browser-reload → <code>APIVersionMiddleware</code> → <code>ObjectChangeMiddleware</code> → <code>DynamicConfigMiddleware</code>.</span></li>
+    <li><b>DynamicConfigMiddleware</b><span>Loads the active <code>ConfigRevision</code> from the Redis cache (key <code>config</code>) into a thread-local, so runtime settings such as <code>SITE_TITLE</code> or <code>MAINTENANCE_MODE</code> resolve without a DB hit.</span></li>
+    <li><b>View + ORM</b><span>Querysets are wrapped by <code>RestrictedQuerySet.restrict()</code>, which folds the caller's <code>ObjectPermission</code> constraints into the SQL <code>WHERE</code> clause.</span></li>
+    <li><b>Response</b><span>Template render (Tailwind-styled) or DRF serialization. <code>ObjectChangeMiddleware</code> commits the accumulated change-log rows in the same transaction and clears cached config on <code>ConfigRevision</code> writes.</span></li>
+  </ol>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="frontend">
+  <h2 class="sec"><span class="num">02</span> Frontend layer</h2>
+  <p class="lede">
+    There is no SPA and no separate frontend service. The frontend is server-rendered Django templates
+    styled with Tailwind, enhanced with Alpine.js for local component state and htmx for partial updates
+    (tables, pagination, delete confirmations). Assets are compiled ahead of time with esbuild and committed
+    to <code>project-static/dist/</code>, then collected into <code>STATIC_ROOT</code> and served by NGINX.
+  </p>
+
+  <h3>Two distinct surfaces</h3>
+  <div class="grid">
+    <div class="card" style="--accent:var(--c-client)">
+      <div class="role">Public — anonymous</div>
+      <h5>Status page</h5>
+      <p>Rendered by <code>HomeView</code> from <code>templates/home.html</code>.</p>
+      <ul>
+        <li><b>/</b> component groups, live status, active incidents, scheduled maintenances, metric charts</li>
+        <li><b>/subscribers/subscribe</b> double opt-in e-mail subscription</li>
+        <li><b>/subscribers/&lt;key&gt;/verify|manage|unsubscribe</b> management-key self-service, no login</li>
+        <li><b>/api/docs/</b>, <b>/api/redoc/</b> open schema browsers</li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Operator — authenticated</div>
+      <h5>Dashboard</h5>
+      <p><code>LOGIN_REQUIRED</code> is hard-forced to <code>True</code> in settings; the config value is ignored.</p>
+      <ul>
+        <li><b>/dashboard/</b> overview; <b>/dashboard/login|logout/</b> with TOTP challenge</li>
+        <li><b>/dashboard/{components,incidents,maintenances,metrics,subscribers,extras}/</b> uniform CRUD + bulk edit/delete + per-object changelog</li>
+        <li><b>/dashboard/user/</b> profile, preferences, password, API tokens, 2FA devices</li>
+        <li><b>/admin/</b> Django admin (OTP-gated) · <b>/admin/background-tasks/</b> RQ dashboard</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Build pipeline &amp; asset flow</h3>
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 1140 220" role="img" aria-label="Frontend asset pipeline">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/>
+          </marker>
+        </defs>
+        <style>
+          .fb{fill:var(--surface);stroke:var(--c-client);stroke-width:1.5;rx:9}
+          .fl{fill:none;stroke:var(--faint);stroke-width:1.6;marker-end:url(#ar2)}
+        </style>
+        <rect class="fb" x="14"  y="60" width="196" height="96"/>
+        <text class="t" x="30" y="86" font-size="13.5" font-weight="700">Sources</text>
+        <text class="m" x="30" y="106" font-size="11.5">src/index.ts · alpine/index.ts</text>
+        <text class="m" x="30" y="124" font-size="11.5">SCSS + Tailwind entry</text>
+        <text class="m" x="30" y="142" font-size="11.5">templates/**/*.html (scanned)</text>
+
+        <rect class="fb" x="244" y="60" width="196" height="96"/>
+        <text class="t" x="260" y="86" font-size="13.5" font-weight="700">Build</text>
+        <text class="m" x="260" y="106" font-size="11.5">yarn · bundle.js (esbuild)</text>
+        <text class="m" x="260" y="124" font-size="11.5">tailwind.config.js</text>
+        <text class="m" x="260" y="142" font-size="11.5">postcss + autoprefixer</text>
+
+        <rect class="fb" x="474" y="60" width="196" height="96"/>
+        <text class="t" x="490" y="86" font-size="13.5" font-weight="700">dist/ (committed)</text>
+        <text class="m" x="490" y="106" font-size="11.5">statuspage.css · -tailwind</text>
+        <text class="m" x="490" y="124" font-size="11.5">-external · -ss-select</text>
+        <text class="m" x="490" y="142" font-size="11.5">statuspage.js · -alpine.js · MDI</text>
+
+        <rect class="fb" x="704" y="60" width="196" height="96"/>
+        <text class="t" x="720" y="86" font-size="13.5" font-weight="700">collectstatic</text>
+        <text class="m" x="720" y="106" font-size="11.5">upgrade.sh step</text>
+        <text class="m" x="720" y="124" font-size="11.5">+ mkdocs build → docs/</text>
+        <text class="m" x="720" y="142" font-size="11.5">→ STATIC_ROOT</text>
+
+        <rect class="fb" x="934" y="60" width="192" height="96" stroke="var(--c-edge)"/>
+        <text class="t" x="950" y="86" font-size="13.5" font-weight="700">NGINX</text>
+        <text class="m" x="950" y="106" font-size="11.5">alias /static/</text>
+        <text class="m" x="950" y="124" font-size="11.5">served without Django</text>
+        <text class="m" x="950" y="142" font-size="11.5">cache-bust ?v=VERSION</text>
+
+        <path class="fl" d="M210,108 H242"/>
+        <path class="fl" d="M440,108 H472"/>
+        <path class="fl" d="M670,108 H702"/>
+        <path class="fl" d="M900,108 H932"/>
+      </svg>
+    </div>
+    <figcaption><b>Fig. 2</b> — Static asset pipeline. <code>dist/</code> is version-controlled, so a deployment never requires Node; <code>upgrade.sh</code> only runs <code>mkdocs build</code> and <code>collectstatic</code>.</figcaption>
+  </figure>
+
+  <h4>Template hierarchy</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Path</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td class="mono nowrap">templates/base/base.html</td><td>Root shell — loads the four dist stylesheets, <code>statuspage-alpine.js</code> (defer) and <code>statuspage.js</code>, cache-busted with <code>?v={{ settings.VERSION }}</code></td></tr>
+        <tr><td class="mono nowrap">templates/base/layout.html · dashboard.html · home.html</td><td>Public shell, dashboard chrome (nav + sidebar), status-page shell</td></tr>
+        <tr><td class="mono nowrap">templates/generic/*</td><td>Reusable object / object_list / object_edit / object_delete / bulk_edit / bulk_delete — every app's CRUD views subclass these</td></tr>
+        <tr><td class="mono nowrap">templates/inc/* · templates/htmx/*</td><td>htmx partials: table, table_controls, paginator, delete_form — swapped in without a full page load</td></tr>
+        <tr><td class="mono nowrap">templates/emails/*</td><td>Paired <code>.txt</code> + <code>.html</code> bodies per notification type, extending <code>base/base_email.html</code></td></tr>
+        <tr><td class="mono nowrap">&lt;plugin&gt;/templates/*</td><td>Plugins ship their own template dirs, discovered via <code>APP_DIRS</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Client-side libraries</h4>
+  <p>
+    <code>alpinejs 3</code> (declarative component state) · <code>htmx 1.8</code> (partial table/pagination/delete swaps) ·
+    <code>chart.js 3.9</code> (metric graphs) · <code>slim-select</code> · <code>flatpickr</code> ·
+    <code>masonry-layout</code> · <code>simplebar</code> · <code>@popperjs/core</code> · <code>clipboard</code> ·
+    <code>dayjs</code> · <code>color2k</code> · <code>@mdi/font</code>. No jQuery, React or Vue.
+    <code>django-tables2</code> renders list views through <code>BaseTable</code>/<code>StatusPageTable</code>
+    with per-user column preferences stored in <code>UserConfig</code>.
+  </p>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="backend">
+  <h2 class="sec"><span class="num">03</span> Backend layer</h2>
+  <p class="lede">
+    A modular monolith. Domain logic is split into Django apps that each contribute models, forms, tables,
+    filtersets, HTML views and a DRF API module in a repeating structure inherited from NetBox. Two optional
+    plugins are loaded through a validated plugin framework rather than being hard-wired.
+  </p>
+
+  <div class="grid">
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Domain</div><h5>components</h5>
+      <p>The catalogue of services whose health the page reports.</p>
+      <ul><li><b>ComponentGroup</b>, <b>Component</b></li><li>Status: operational, degraded_performance, partial_outage, major_outage, maintenance, unknown</li><li><code>signals.py</code> fires subscriber notifications on status change</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Domain</div><h5>incidents</h5>
+      <p>Unplanned events and their update timeline.</p>
+      <ul><li><b>Incident</b>, <b>IncidentUpdate</b></li><li>M2M to affected components; FK to the authoring user</li><li>List, past-archive and per-update CRUD views</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Domain</div><h5>maintenances</h5>
+      <p>Planned windows, optionally self-driving.</p>
+      <ul><li><b>Maintenance</b>, <b>MaintenanceUpdate</b></li><li><code>start_automatically</code> / <code>end_automatically</code> drive the minute-cron job</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Domain</div><h5>metrics</h5>
+      <p>Time-series shown as charts on the public page.</p>
+      <ul><li><b>Metric</b>, <b>MetricPoint</b></li><li>Points older than 31 days are pruned nightly</li><li>Serialized to JSON for chart.js</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Domain</div><h5>subscribers</h5>
+      <p>E-mail notification audience with double opt-in.</p>
+      <ul><li><b>Subscriber</b> — unique e-mail, UUID <code>management_key</code>, verification timestamp</li><li>M2M component subscriptions + global incident flag</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Identity</div><h5>users</h5>
+      <p>Extends the stock Django <code>User</code>; no custom user model.</p>
+      <ul><li><b>UserConfig</b>, <b>Token</b>, <b>ObjectPermission</b></li><li>Login view with TOTP challenge, 2FA device management, backup codes</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Platform</div><h5>extras</h5>
+      <p>Cross-cutting services, not a domain.</p>
+      <ul><li><b>ObjectChange</b> (audit trail), <b>ConfigRevision</b> (runtime config)</li><li>Plugin framework + registry, <code>rqworker</code> / <code>clearcache</code> commands</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-async)">
+      <div class="role">Platform</div><h5>queuing</h5>
+      <p>No models. <code>apps.py::ready()</code> registers the core cron jobs with rq-scheduler if absent.</p>
+      <ul><li>maintenance_automation, subscriber_automation, metric_automation, housekeeping</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-app)">
+      <div class="role">Platform</div><h5>utilities</h5>
+      <p>Abstract bases and shared machinery consumed by every app.</p>
+      <ul><li>Generic CRUD view mixins, table/column/form bases, filters, paginator, <code>send_mail()</code>, permission resolution, htmx helpers</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-plugin)">
+      <div class="role">Plugin</div><h5>sp_uptimerobot</h5>
+      <p>Pulls monitor state and response times into components and metrics.</p>
+      <ul><li><b>UptimeRobotMonitor</b> → Component, → Metric</li><li>Requires <code>uptime_robot_api_key</code></li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-plugin)">
+      <div class="role">Plugin</div><h5>sp_external_status_providers</h5>
+      <p>Mirrors an upstream vendor's status page into local components.</p>
+      <ul><li><b>ExternalStatusPage</b>, <b>ExternalStatusComponent</b> → Component</li><li>Only provider implemented: Atlassian Statuspage</li></ul>
+    </div>
+    <div class="card" style="--accent:var(--c-edge)">
+      <div class="role">Project</div><h5>statuspage/ (project pkg)</h5>
+      <p>Settings, URLconf, middleware, auth backend, dynamic config, DRF routers, serializer/viewset bases, admin site.</p>
+      <ul><li><code>settings.py</code>, <code>urls.py</code>, <code>authentication.py</code>, <code>config/</code>, <code>api/</code></li></ul>
+    </div>
+  </div>
+
+  <h3>Plugin loading contract</h3>
+  <p>
+    For each entry in <code>PLUGINS</code>, <code>settings.py</code> imports the module, requires a
+    <code>PluginConfig</code> named <code>config</code>, calls <code>validate(PLUGINS_CONFIG[name], VERSION)</code>
+    to enforce min/max app version plus <code>required_settings</code> and <code>default_settings</code>, then appends
+    the app to <code>INSTALLED_APPS</code>, extends <code>MIDDLEWARE</code>, and registers additional RQ queues named
+    <code>&lt;plugin&gt;.&lt;queue&gt;</code>. Plugin URLs mount under <code>/plugins/</code> and
+    <code>/api/plugins/</code>; plugin cron schedules are registered by
+    <code>extras/plugins/__init__.py::register_schedules()</code>.
+  </p>
+
+  <h3>REST API surface</h3>
+  <p>
+    DRF with <code>AcceptHeaderVersioning</code>, session + token auth, <code>DjangoFilterBackend</code> and
+    <code>OrderingFilter</code>, optional limit/offset pagination, and a custom
+    <code>StatusPageRouter</code> that maps list-route <code>PUT/PATCH/DELETE</code> onto bulk operations.
+  </p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Mount</th><th>Endpoints</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="mono nowrap">/api/components/</td><td class="mono">components, component-groups</td><td>Full CRUD + bulk</td></tr>
+        <tr><td class="mono nowrap">/api/incidents/</td><td class="mono">incidents, incident-updates</td><td>Full CRUD + bulk</td></tr>
+        <tr><td class="mono nowrap">/api/maintenances/</td><td class="mono">maintenances, maintenance-updates</td><td>Full CRUD + bulk</td></tr>
+        <tr><td class="mono nowrap">/api/metrics/</td><td class="mono">metrics, metric-points</td><td>Ingestion path for external metric data</td></tr>
+        <tr><td class="mono nowrap">/api/subscribers/</td><td class="mono">subscribers</td><td>Full CRUD + bulk</td></tr>
+        <tr><td class="mono nowrap">/api/extras/</td><td class="mono">object-changes, content-types</td><td>Read-only</td></tr>
+        <tr><td class="mono nowrap">/api/users/</td><td class="mono">users, groups, tokens, permissions, config</td><td>Plus <code>tokens/provision/</code> — username+password → new token, no auth required</td></tr>
+        <tr><td class="mono nowrap">/api/plugins/</td><td class="mono">installed-plugins + plugin routers</td><td>Contributed by loaded plugins</td></tr>
+        <tr><td class="mono nowrap">/api/docs/ · /api/redoc/ · /api/swagger.json</td><td class="mono">drf-yasg</td><td><code>permission_classes=()</code>, cached 24 h</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="data">
+  <h2 class="sec"><span class="num">04</span> Data layer &amp; entity model</h2>
+  <p class="lede">
+    PostgreSQL is the single system of record — there is no second database, no read replica in the shipped
+    configuration, and no ORM sharding. Every persisted model inherits <code>ChangeLoggedModel</code>, which adds
+    <code>created</code>/<code>last_updated</code>, snapshotting and an audit row, and swaps in
+    <code>RestrictedQuerySet</code> so object-level permissions are enforced at the queryset level.
+  </p>
+
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 1330 900" role="img" aria-label="Entity relationship diagram">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/>
+          </marker>
+        </defs>
+        <style>
+          .eb{fill:var(--surface);stroke-width:1.5;rx:8}
+          .eh{font-weight:700;font-size:13px}
+          .ef{font-size:11px}
+          .rel{fill:none;stroke:var(--faint);stroke-width:1.5;marker-end:url(#ar3)}
+          .m2m{stroke-dasharray:5 4}
+          .o2o{stroke-dasharray:2 3}
+          .crd{font-size:10px;fill:var(--faint)}
+        </style>
+
+        <!-- COMPONENT GROUP -->
+        <rect class="eb" x="30" y="40" width="250" height="102" stroke="var(--c-app)"/>
+        <text class="t eh" x="44" y="61">ComponentGroup</text>
+        <text class="m ef" x="44" y="82">name · description</text>
+        <text class="m ef" x="44" y="98">visibility</text>
+        <text class="m ef" x="44" y="114">order</text>
+        <text class="m ef" x="44" y="130">collapse</text>
+
+        <!-- METRIC -->
+        <rect class="eb" x="30" y="200" width="250" height="102" stroke="var(--c-app)"/>
+        <text class="t eh" x="44" y="221">Metric</text>
+        <text class="m ef" x="44" y="242">title · suffix</text>
+        <text class="m ef" x="44" y="258">visibility</text>
+        <text class="m ef" x="44" y="274">order</text>
+        <text class="m ef" x="44" y="290">expand</text>
+
+        <!-- METRIC POINT -->
+        <rect class="eb" x="30" y="360" width="250" height="86" stroke="var(--c-app)"/>
+        <text class="t eh" x="44" y="381">MetricPoint</text>
+        <text class="m ef" x="44" y="402">metric  →  FK</text>
+        <text class="m ef" x="44" y="418">value (float)</text>
+        <text class="m ef" x="44" y="434">created — pruned &gt; 31 d</text>
+
+        <!-- COMPONENT -->
+        <rect class="eb" x="360" y="150" width="260" height="134" stroke="var(--c-app)" stroke-width="2.5"/>
+        <text class="t eh" x="374" y="171">Component</text>
+        <text class="m ef" x="374" y="192">component_group  →  FK</text>
+        <text class="m ef" x="374" y="208">name · link · description</text>
+        <text class="m ef" x="374" y="224">status (6 states)</text>
+        <text class="m ef" x="374" y="240">visibility</text>
+        <text class="m ef" x="374" y="256">order</text>
+        <text class="f ef" x="374" y="274" font-style="italic">pre_save signal → notify subscribers</text>
+
+        <!-- SUBSCRIBER -->
+        <rect class="eb" x="360" y="380" width="260" height="102" stroke="var(--c-ext)"/>
+        <text class="t eh" x="374" y="401">Subscriber</text>
+        <text class="m ef" x="374" y="422">email (unique)</text>
+        <text class="m ef" x="374" y="438">email_verified_at</text>
+        <text class="m ef" x="374" y="454">management_key (uuid4)</text>
+        <text class="m ef" x="374" y="470">incident_subscriptions</text>
+
+        <!-- INCIDENT -->
+        <rect class="eb" x="700" y="30" width="260" height="134" stroke="var(--c-edge)"/>
+        <text class="t eh" x="714" y="51">Incident</text>
+        <text class="m ef" x="714" y="72">title · visibility</text>
+        <text class="m ef" x="714" y="88">status  investigating…resolved</text>
+        <text class="m ef" x="714" y="104">impact</text>
+        <text class="m ef" x="714" y="120">user  →  FK</text>
+        <text class="m ef" x="714" y="136">components  ↔  M2M</text>
+        <text class="f ef" x="714" y="155" font-style="italic">save() → subscriber fan-out</text>
+
+        <!-- INCIDENT UPDATE -->
+        <rect class="eb" x="700" y="210" width="260" height="102" stroke="var(--c-edge)"/>
+        <text class="t eh" x="714" y="231">IncidentUpdate</text>
+        <text class="m ef" x="714" y="252">incident  →  FK (cascade)</text>
+        <text class="m ef" x="714" y="268">text (markdown)</text>
+        <text class="m ef" x="714" y="284">new_status</text>
+        <text class="m ef" x="714" y="300">user  →  FK</text>
+
+        <!-- MAINTENANCE -->
+        <rect class="eb" x="700" y="360" width="260" height="150" stroke="var(--c-edge)"/>
+        <text class="t eh" x="714" y="381">Maintenance</text>
+        <text class="m ef" x="714" y="402">title · visibility · impact</text>
+        <text class="m ef" x="714" y="418">scheduled_at · end_at</text>
+        <text class="m ef" x="714" y="434">start_automatically</text>
+        <text class="m ef" x="714" y="450">end_automatically</text>
+        <text class="m ef" x="714" y="466">status  scheduled / in_progress / completed</text>
+        <text class="m ef" x="714" y="482">user  →  FK</text>
+        <text class="m ef" x="714" y="498">components  ↔  M2M</text>
+
+        <!-- MAINTENANCE UPDATE -->
+        <rect class="eb" x="700" y="555" width="260" height="102" stroke="var(--c-edge)"/>
+        <text class="t eh" x="714" y="576">MaintenanceUpdate</text>
+        <text class="m ef" x="714" y="597">maintenance  →  FK (cascade)</text>
+        <text class="m ef" x="714" y="613">text (markdown)</text>
+        <text class="m ef" x="714" y="629">new_status</text>
+        <text class="m ef" x="714" y="645">user  →  FK</text>
+
+        <!-- USER -->
+        <rect class="eb" x="1050" y="30" width="250" height="102" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="51">User  <tspan class="f" font-size="10" font-weight="400">django.contrib.auth</tspan></text>
+        <text class="m ef" x="1064" y="72">username · email</text>
+        <text class="m ef" x="1064" y="88">password</text>
+        <text class="m ef" x="1064" y="104">is_staff · is_superuser</text>
+        <text class="m ef" x="1064" y="120">groups  ↔  Group</text>
+
+        <!-- USER CONFIG -->
+        <rect class="eb" x="1050" y="170" width="250" height="70" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="191">UserConfig</text>
+        <text class="m ef" x="1064" y="212">user  →  OneToOne</text>
+        <text class="m ef" x="1064" y="228">data (JSON preferences)</text>
+
+        <!-- TOKEN -->
+        <rect class="eb" x="1050" y="278" width="250" height="118" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="299">Token</text>
+        <text class="m ef" x="1064" y="320">user  →  FK</text>
+        <text class="m ef" x="1064" y="336">key (40-char hex)</text>
+        <text class="m ef" x="1064" y="352">expires · last_used</text>
+        <text class="m ef" x="1064" y="368">write_enabled</text>
+        <text class="m ef" x="1064" y="384">allowed_ips (CIDR array)</text>
+
+        <!-- OBJECT PERMISSION -->
+        <rect class="eb" x="1050" y="430" width="250" height="102" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="451">ObjectPermission</text>
+        <text class="m ef" x="1064" y="472">object_types  ↔  ContentType</text>
+        <text class="m ef" x="1064" y="488">users ↔ · groups ↔</text>
+        <text class="m ef" x="1064" y="504">actions (array)</text>
+        <text class="m ef" x="1064" y="520">constraints (JSON → SQL)</text>
+
+        <!-- OBJECT CHANGE -->
+        <rect class="eb" x="1050" y="570" width="250" height="102" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="591">ObjectChange</text>
+        <text class="m ef" x="1064" y="612">user  →  FK · user_name</text>
+        <text class="m ef" x="1064" y="628">action · request_id</text>
+        <text class="m ef" x="1064" y="644">changed_object  →  generic FK</text>
+        <text class="m ef" x="1064" y="660">pre/postchange_data (JSON)</text>
+
+        <!-- CONFIG REVISION -->
+        <rect class="eb" x="1050" y="745" width="250" height="86" stroke="var(--c-data)"/>
+        <text class="t eh" x="1064" y="766">ConfigRevision</text>
+        <text class="m ef" x="1064" y="787">created · comment</text>
+        <text class="m ef" x="1064" y="803">data (JSON)</text>
+        <text class="f ef" x="1064" y="821" font-style="italic">activate() → Redis cache</text>
+
+        <!-- PLUGIN BAND -->
+        <rect x="20" y="710" width="1000" height="160" rx="12" fill="none" stroke="var(--c-plugin)" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text class="f" x="36" y="730" font-size="11" font-weight="700" letter-spacing=".08em">OPTIONAL PLUGINS</text>
+
+        <rect class="eb" x="45" y="745" width="280" height="102" stroke="var(--c-plugin)"/>
+        <text class="t eh" x="59" y="766">UptimeRobotMonitor</text>
+        <text class="m ef" x="59" y="787">monitor_id (unique) · friendly_name</text>
+        <text class="m ef" x="59" y="803">status_id · paused</text>
+        <text class="m ef" x="59" y="819">component  →  FK (SET_NULL)</text>
+        <text class="m ef" x="59" y="835">metric  →  FK (SET_NULL)</text>
+
+        <rect class="eb" x="365" y="745" width="270" height="102" stroke="var(--c-plugin)"/>
+        <text class="t eh" x="379" y="766">ExternalStatusPage</text>
+        <text class="m ef" x="379" y="787">domain</text>
+        <text class="m ef" x="379" y="803">provider = atlassian-statuspage</text>
+        <text class="m ef" x="379" y="819">create_incidents</text>
+        <text class="m ef" x="379" y="835">create_maintenances</text>
+
+        <rect class="eb" x="675" y="745" width="310" height="102" stroke="var(--c-plugin)"/>
+        <text class="t eh" x="689" y="766">ExternalStatusComponent</text>
+        <text class="m ef" x="689" y="787">external_page  →  FK (cascade)</text>
+        <text class="m ef" x="689" y="803">page_object_id · name</text>
+        <text class="m ef" x="689" y="819">group_name</text>
+        <text class="m ef" x="689" y="835">component  →  FK (SET_NULL)</text>
+
+        <!-- RELATIONS -->
+        <path class="rel" d="M280,91 H320 V190 H358"/>
+        <text class="crd" x="292" y="84">1</text><text class="crd" x="332" y="186">∗</text>
+
+        <path class="rel m2m" d="M620,185 H660 V100 H698"/>
+        <text class="crd" x="640" y="140">∗ ∗</text>
+
+        <path class="rel m2m" d="M620,250 H668 V430 H698"/>
+        <text class="crd" x="628" y="330">∗ ∗</text>
+
+        <path class="rel m2m" d="M490,284 V378"/>
+        <text class="crd" x="498" y="336">∗ ∗  component_subscriptions</text>
+
+        <path class="rel" d="M830,164 V208"/>
+        <text class="crd" x="838" y="190">1 → ∗</text>
+
+        <path class="rel" d="M830,510 V553"/>
+        <text class="crd" x="838" y="536">1 → ∗</text>
+
+        <path class="rel" d="M155,302 V358"/>
+        <text class="crd" x="163" y="334">1 → ∗</text>
+
+        <path class="rel" d="M1050,60 H962"/>
+        <text class="crd" x="980" y="52">1 → ∗</text>
+
+        <path class="rel" d="M1050,112 H1010 V400 H962"/>
+        <text class="crd" x="972" y="392">1 → ∗</text>
+
+        <path class="rel o2o" d="M1175,132 V168"/>
+        <text class="crd" x="1183" y="154">1 — 1</text>
+
+        <path class="rel" d="M1050,124 H1030 V337 H1048"/>
+        <text class="crd" x="1000" y="330">1 → ∗</text>
+        <path class="rel" d="M1030,337 V481 H1048"/>
+        <path class="rel" d="M1030,481 V621 H1048"/>
+
+        <path class="rel" d="M185,745 V690 H340 V240 H358"/>
+        <text class="crd" x="196" y="684">syncs status</text>
+        <path class="rel" d="M45,800 H16 V250 H28"/>
+        <text class="crd" x="20" y="470">writes points</text>
+
+        <path class="rel" d="M635,800 H673"/>
+        <text class="crd" x="636" y="792">1 → ∗</text>
+
+        <path class="rel" d="M835,745 V705 H640 V270 H622"/>
+        <text class="crd" x="648" y="700">maps to</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span>——— solid = ForeignKey (1 → ∗)</span>
+      <span>— — — dashed = ManyToMany (∗ ↔ ∗)</span>
+      <span>· · · dotted = OneToOne</span>
+      <span><i style="background:var(--c-app)"></i>Service catalogue</span>
+      <span><i style="background:var(--c-edge)"></i>Events</span>
+      <span><i style="background:var(--c-ext)"></i>Audience</span>
+      <span><i style="background:var(--c-data)"></i>Identity &amp; platform</span>
+      <span><i style="background:var(--c-plugin)"></i>Plugins</span>
+    </div>
+    <figcaption>
+      <b>Fig. 3</b> — PostgreSQL entity model. <code>Component</code> is the hub: it is grouped, referenced
+      many-to-many by incidents, maintenances and subscribers, and written to by both plugins.
+      All entities additionally carry <code>created</code>/<code>last_updated</code> and emit
+      <code>ObjectChange</code> audit rows.
+    </figcaption>
+  </figure>
+
+  <h3>Redis — two logical databases</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Section</th><th>Default DB</th><th>Client</th><th>Purpose</th><th>Failure impact</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono nowrap">REDIS['tasks']</td><td class="mono">0</td>
+          <td class="mono">django-rq / rq</td>
+          <td>Job broker for queues <code>high</code>, <code>default</code>, <code>low</code>, plus the rq-scheduler sorted set. <code>RQ_DEFAULT_TIMEOUT 300</code>.</td>
+          <td>No mail sent, no maintenance automation, no plugin polling. Web UI stays up.</td>
+        </tr>
+        <tr>
+          <td class="mono nowrap">REDIS['caching']</td><td class="mono">1</td>
+          <td class="mono">django_redis</td>
+          <td>Django cache backend. Holds <code>config</code> / <code>config_version</code> for the dynamic-config layer and cached view fragments.</td>
+          <td>Requests fail or degrade — <code>DynamicConfigMiddleware</code> depends on it on every request.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Both sections independently support Redis Sentinel (<code>SENTINELS</code>, <code>SENTINEL_SERVICE</code>)
+    and TLS, in which case the cache switches to <code>SentinelClient</code> +
+    <code>SentinelConnectionFactory</code>.
+  </p>
+
+  <h3>Dynamic configuration</h3>
+  <p>
+    A second configuration plane sits above <code>configuration.py</code>: <code>ConfigRevision</code> rows edited
+    in Django admin, activated into the Redis cache and read per-request into a thread-local by
+    <code>DynamicConfigMiddleware</code>. Parameters include <code>SITE_TITLE</code>,
+    <code>SITE_SUBSCRIBERS</code>, custom header/footer/CSS, <code>ALLOWED_URL_SCHEMES</code>,
+    <code>PAGINATE_COUNT</code>, <code>MAX_PAGE_SIZE</code>, <code>DEFAULT_USER_PREFERENCES</code>,
+    <code>MAINTENANCE_MODE</code> and <code>CHANGELOG_RETENTION</code> — changeable without a restart.
+  </p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section id="async">
+  <h2 class="sec"><span class="num">05</span> Asynchronous &amp; scheduled work</h2>
+  <p class="lede">
+    All work that must not block a request — outbound e-mail, third-party polling, retention pruning and
+    maintenance-window automation — runs on RQ. In practice only the <code>default</code> queue receives core
+    work; <code>high</code> and <code>low</code> exist for plugins and future use.
+  </p>
+
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 1160 180" role="img" aria-label="Notification pipeline">
+        <defs>
+          <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/>
+          </marker>
+        </defs>
+        <style>
+          .pb{fill:var(--surface);stroke-width:1.5;rx:8}
+          .pl{fill:none;stroke:var(--faint);stroke-width:1.6;marker-end:url(#ar4)}
+        </style>
+        <rect class="pb" x="20"  y="52" width="165" height="76" stroke="var(--c-app)"/>
+        <text class="t" x="32" y="76" font-size="12.5" font-weight="700">Trigger</text>
+        <text class="m" x="32" y="95" font-size="11">Incident / Maintenance</text>
+        <text class="m" x="32" y="111" font-size="11">/ Update saved, or</text>
+        <text class="m" x="32" y="127" font-size="11">Component.status change</text>
+
+        <rect class="pb" x="210" y="52" width="165" height="76" stroke="var(--c-app)"/>
+        <text class="t" x="222" y="76" font-size="12.5" font-weight="700">Fan-out</text>
+        <text class="m" x="222" y="95" font-size="11">Model.save() / pre_save</text>
+        <text class="m" x="222" y="111" font-size="11">signal iterates matching</text>
+        <text class="m" x="222" y="127" font-size="11">Subscriber rows</text>
+
+        <rect class="pb" x="400" y="52" width="165" height="76" stroke="var(--c-async)"/>
+        <text class="t" x="412" y="76" font-size="12.5" font-weight="700">Enqueue</text>
+        <text class="m" x="412" y="95" font-size="11">django_rq.enqueue(</text>
+        <text class="m" x="412" y="111" font-size="11">  send_mail, …)</text>
+        <text class="m" x="412" y="127" font-size="11">one job per recipient</text>
+
+        <rect class="pb" x="590" y="52" width="165" height="76" stroke="var(--c-data)"/>
+        <text class="t" x="602" y="76" font-size="12.5" font-weight="700">Broker</text>
+        <text class="m" x="602" y="95" font-size="11">Redis DB 0</text>
+        <text class="m" x="602" y="111" font-size="11">queue: default</text>
+        <text class="m" x="602" y="127" font-size="11">timeout 300 s</text>
+
+        <rect class="pb" x="780" y="52" width="165" height="76" stroke="var(--c-async)"/>
+        <text class="t" x="792" y="76" font-size="12.5" font-weight="700">Worker</text>
+        <text class="m" x="792" y="95" font-size="11">rqworker renders</text>
+        <text class="m" x="792" y="111" font-size="11">emails/*.txt + .html</text>
+        <text class="m" x="792" y="127" font-size="11">→ Django send_mail</text>
+
+        <rect class="pb" x="970" y="52" width="165" height="76" stroke="var(--c-ext)"/>
+        <text class="t" x="982" y="76" font-size="12.5" font-weight="700">Delivery</text>
+        <text class="m" x="982" y="95" font-size="11">SMTP relay</text>
+        <text class="m" x="982" y="111" font-size="11">From: SITE_TITLE</text>
+        <text class="m" x="982" y="127" font-size="11">Subject: [Status-Page] …</text>
+
+        <path class="pl" d="M185,90 H208"/>
+        <path class="pl" d="M375,90 H398"/>
+        <path class="pl" d="M565,90 H588"/>
+        <path class="pl" d="M755,90 H778"/>
+        <path class="pl" d="M945,90 H968"/>
+        <text class="f" x="20" y="34" font-size="11" font-style="italic">Steps 1–3 run inside the Gunicorn request thread; steps 4–6 run in the worker process.</text>
+      </svg>
+    </div>
+    <figcaption><b>Fig. 4</b> — Subscriber notification pipeline. The subscriber query and the per-recipient enqueue loop still happen synchronously inside <code>save()</code>; only the render-and-send step is deferred.</figcaption>
+  </figure>
+
+  <h3>Scheduled jobs</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Job</th><th class="nowrap">Cron</th><th>Owner</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="mono nowrap">maintenance_automation</td><td class="mono nowrap">* * * * *</td><td class="mono">queuing</td><td>Starts maintenances past <code>scheduled_at</code> (creates a <code>MaintenanceUpdate</code>, flips components to <code>maintenance</code>); completes those past <code>end_at</code> and restores components to <code>operational</code></td></tr>
+        <tr><td class="mono nowrap">subscriber_automation</td><td class="mono nowrap">* * * * *</td><td class="mono">queuing</td><td>Deletes <code>Subscriber</code> rows unverified for more than 24 h</td></tr>
+        <tr><td class="mono nowrap">metric_automation</td><td class="mono nowrap">0 0 * * *</td><td class="mono">queuing</td><td>Prunes <code>MetricPoint</code> rows older than 31 days</td></tr>
+        <tr><td class="mono nowrap">housekeeping</td><td class="mono nowrap">0 4 * * *</td><td class="mono">queuing</td><td>Clears expired sessions; purges <code>ObjectChange</code> beyond <code>CHANGELOG_RETENTION</code></td></tr>
+        <tr><td class="mono nowrap">sync_uptimerobot_data</td><td class="mono nowrap">* * * * *</td><td class="mono">sp_uptimerobot</td><td>Polls the UptimeRobot API, maps monitor status onto components, honours maintenance windows, writes <code>MetricPoint</code>s, removes stale monitors</td></tr>
+        <tr><td class="mono nowrap">sync_external_status_pages</td><td class="mono nowrap">* * * * *</td><td class="mono">sp_external_status_providers</td><td>Fetches each configured Atlassian status page and mirrors component states locally</td></tr>
+        <tr><td class="mono nowrap">send_mail</td><td class="nowrap">ad-hoc</td><td class="mono">utilities</td><td>The only non-scheduled enqueue in the codebase — one job per recipient per notification</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Cron registration is idempotent: <code>QueuingConfig.ready()</code> lists the scheduler's existing job
+    function names and only registers what is missing (and skips entirely during
+    <code>manage.py collectstatic</code>). Plugin schedules are declared in each plugin's
+    <code>queuing.py::schedules</code> list. Operators inspect queues at
+    <code>/admin/background-tasks/</code>.
+  </p>
+</section>
+
+<!-- ============================================================ 6 -->
+<section id="external">
+  <h2 class="sec"><span class="num">06</span> External integrations</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>System</th><th>Direction</th><th>Protocol / endpoint</th><th>Auth</th><th>Trigger</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>SMTP relay</b></td><td class="nowrap">outbound</td>
+          <td class="mono">SMTP · configurable host/port · optional TLS/SSL, timeout, client cert</td>
+          <td class="mono">EMAIL_HOST_USER / PASSWORD</td>
+          <td>RQ job <code>send_mail</code> — verification, management key, incident/maintenance created &amp; updated, component status change</td>
+        </tr>
+        <tr>
+          <td><b>UptimeRobot</b></td><td class="nowrap">outbound</td>
+          <td class="mono">HTTPS POST api.uptimerobot.com/v2/getMonitors</td>
+          <td class="mono">api_key (plugin setting)</td>
+          <td>Scheduled every minute</td>
+        </tr>
+        <tr>
+          <td><b>Atlassian Statuspage</b></td><td class="nowrap">outbound</td>
+          <td class="mono">HTTPS GET https://&lt;domain&gt;/api/v2/components.json</td>
+          <td>none (public endpoint)</td>
+          <td>Scheduled every minute, per configured page</td>
+        </tr>
+        <tr>
+          <td><b>REST API consumers</b></td><td class="nowrap">inbound</td>
+          <td class="mono">HTTPS /api/… · JSON</td>
+          <td class="mono">Token or session</td>
+          <td>Client-driven — typically metric ingestion and incident automation from CI</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    That is the complete outbound surface: <code>requests</code> appears in exactly two modules, both in plugins.
+    There is <b>no webhook subsystem</b> — <code>extras/constants.py</code> retains a stale
+    "Webhook content types" comment inherited from NetBox, but no <code>Webhook</code> model or dispatcher
+    exists, so pushing events to Slack/Teams/PagerDuty requires either polling the REST API or writing a plugin.
+  </p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section id="security">
+  <h2 class="sec"><span class="num">07</span> Security &amp; identity</h2>
+  <div class="grid">
+    <div class="card" style="--accent:var(--c-data)">
+      <div class="role">Authentication</div><h5>Sessions + TOTP</h5>
+      <ul>
+        <li>Stock <code>django.contrib.auth.User</code>; single custom backend <code>ObjectPermissionBackend</code></li>
+        <li><code>django-otp</code> with TOTP, static backup codes and YubiKey device support</li>
+        <li>Login view issues an OTP challenge (<code>otp-device</code> / <code>otp-token</code>); Django admin uses <code>OTPAdminAuthenticationForm</code></li>
+        <li>QR enrolment rendered locally with <code>segno</code> — no external QR service</li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-data)">
+      <div class="role">API credentials</div><h5>Scoped tokens</h5>
+      <ul>
+        <li>40-char hex key, optional <code>expires</code>, <code>write_enabled</code> flag blocking unsafe methods</li>
+        <li><code>allowed_ips</code> CIDR allowlist checked against the client IP resolved from forwarded headers</li>
+        <li><code>last_used</code> written at most once per minute; skipped in <code>MAINTENANCE_MODE</code></li>
+        <li><code>TokenPermissions</code> maps GET/HEAD onto the model's <code>view_*</code> permission</li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-data)">
+      <div class="role">Authorization</div><h5>Object-level permissions</h5>
+      <ul>
+        <li><code>ObjectPermission</code> binds users/groups + content types + actions + a JSON <code>constraints</code> filter</li>
+        <li>Constraints are compiled to ORM filters and applied by <code>RestrictedQuerySet.restrict()</code> — enforcement is at the queryset, not the template</li>
+        <li>Views gate through <code>ObjectPermissionRequiredMixin</code>; <code>EXEMPT_VIEW_PERMISSIONS</code> is force-emptied</li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-data)">
+      <div class="role">Auditability</div><h5>Change log</h5>
+      <ul>
+        <li><code>ObjectChangeMiddleware</code> + <code>extras/signals.py</code> record pre/post JSON snapshots per write</li>
+        <li>Correlated by <code>request_id</code>, attributed to the user, exposed per-object at <code>&lt;pk&gt;/changelog/</code> and read-only at <code>/api/extras/object-changes/</code></li>
+        <li>Retention enforced nightly by the <code>housekeeping</code> job</li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-edge)">
+      <div class="role">Transport</div><h5>Edge hardening</h5>
+      <ul>
+        <li>TLS at NGINX with HTTP→HTTPS redirect; <code>SECURE_PROXY_SSL_HEADER</code> + <code>USE_X_FORWARDED_HOST</code></li>
+        <li><code>X_FRAME_OPTIONS = SAMEORIGIN</code>, CSRF middleware, <code>ALLOWED_HOSTS</code> mandatory</li>
+        <li>Upload ceiling <code>client_max_body_size 25m</code></li>
+      </ul>
+    </div>
+    <div class="card" style="--accent:var(--c-ext)">
+      <div class="role">Public surface</div><h5>Unauthenticated paths</h5>
+      <ul>
+        <li>Status page, subscribe/verify/manage/unsubscribe (UUID management key is the only secret)</li>
+        <li><code>/api/docs/</code>, <code>/api/redoc/</code>, <code>/api/swagger.json</code> — <code>permission_classes=()</code></li>
+        <li><code>/api/users/tokens/provision/</code> — username+password exchanged for a token, no prior auth</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section id="matrix">
+  <h2 class="sec"><span class="num">08</span> Connection matrix</h2>
+  <p class="lede">Every link in Fig. 1, with the protocol, direction and credential that governs it.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>#</th><th>Source</th><th>Target</th><th class="nowrap">Protocol / port</th><th>Purpose</th><th>Credential</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td>Browser / API client</td><td>NGINX</td><td class="mono nowrap">HTTPS 443</td><td>All inbound traffic; HTTP 80 redirects</td><td>Session cookie or <code>Authorization: Token</code></td></tr>
+        <tr><td class="mono">2</td><td>NGINX</td><td>Gunicorn</td><td class="mono nowrap">HTTP 127.0.0.1:8001</td><td>Reverse proxy for all non-static paths</td><td>none — loopback only</td></tr>
+        <tr><td class="mono">3</td><td>NGINX</td><td>Local filesystem</td><td class="mono nowrap">file</td><td><code>/static/</code> alias to <code>STATIC_ROOT</code></td><td>n/a</td></tr>
+        <tr><td class="mono">4</td><td>Django (Gunicorn)</td><td>PostgreSQL</td><td class="mono nowrap">TCP 5432</td><td>All reads/writes; persistent conns, <code>CONN_MAX_AGE 300</code></td><td>DB user + password</td></tr>
+        <tr><td class="mono">5</td><td>Django (Gunicorn)</td><td>Redis DB 1</td><td class="mono nowrap">TCP 6379 (TLS opt.)</td><td>Cache — dynamic config on every request</td><td>Redis password / Sentinel</td></tr>
+        <tr><td class="mono">6</td><td>Django (Gunicorn)</td><td>Redis DB 0</td><td class="mono nowrap">TCP 6379</td><td><code>enqueue()</code> of notification jobs</td><td>Redis password / Sentinel</td></tr>
+        <tr><td class="mono">7</td><td>RQ Worker</td><td>Redis DB 0</td><td class="mono nowrap">TCP 6379</td><td>Blocking dequeue from <code>high default low</code>; result write-back</td><td>Redis password / Sentinel</td></tr>
+        <tr><td class="mono">8</td><td>RQ Worker</td><td>PostgreSQL</td><td class="mono nowrap">TCP 5432</td><td>Job-side model reads/writes (automation, pruning, sync)</td><td>DB user + password</td></tr>
+        <tr><td class="mono">9</td><td>RQ Scheduler</td><td>Redis DB 0</td><td class="mono nowrap">TCP 6379</td><td>Cron registry; moves due jobs onto <code>default</code></td><td>Redis password / Sentinel</td></tr>
+        <tr><td class="mono">10</td><td>RQ Worker</td><td>SMTP relay</td><td class="mono nowrap">SMTP 25/465/587</td><td>Subscriber notification &amp; verification mail</td><td>SMTP user + password, optional client cert</td></tr>
+        <tr><td class="mono">11</td><td>RQ Worker</td><td>UptimeRobot API</td><td class="mono nowrap">HTTPS 443</td><td>Monitor status + response times → components/metrics</td><td>API key (plugin config)</td></tr>
+        <tr><td class="mono">12</td><td>RQ Worker</td><td>Vendor status page</td><td class="mono nowrap">HTTPS 443</td><td>Atlassian <code>components.json</code> mirror</td><td>none</td></tr>
+        <tr><td class="mono">13</td><td>Django (Gunicorn)</td><td>Local filesystem</td><td class="mono nowrap">file</td><td><code>/media/&lt;path&gt;</code> served in-process from <code>MEDIA_ROOT</code></td><td>n/a</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section id="notes">
+  <h2 class="sec"><span class="num">09</span> Architectural notes</h2>
+
+  <div class="note">
+    <h5>Observations worth carrying into a design review</h5>
+    <ul>
+      <li><b>Notification fan-out is synchronous inside <code>save()</code>.</b> <code>Incident</code>, <code>IncidentUpdate</code>, <code>Maintenance</code> and <code>MaintenanceUpdate</code> loop over subscribers and enqueue one RQ job each while the request thread is still open, all wrapped in a bare <code>try/except: pass</code>. A large subscriber list lengthens the write request, and any failure is swallowed silently.</li>
+      <li><b>Cache is on the critical path.</b> <code>DynamicConfigMiddleware</code> reads the active config from Redis DB 1 on every request, so a cache outage degrades the whole application rather than just cold-starting it.</li>
+      <li><b>Maintenance subscriptions reuse the incident flag.</b> <code>Maintenance.save()</code> and <code>MaintenanceUpdate.save()</code> filter subscribers on <code>incident_subscriptions=True</code>; there is no separate maintenance opt-in.</li>
+      <li><b>Component-scoped targeting is partial.</b> Only <code>components/signals.py</code> honours <code>component_subscriptions</code>; incident and maintenance notifications ignore it and go to every subscriber with the incident flag set.</li>
+      <li><b>No webhook / push integration.</b> Chat and paging integrations require the REST API or a plugin.</li>
+      <li><b>Single-host assumptions.</b> <code>MEDIA_ROOT</code> is local disk served by Django, and plugin sync jobs are unguarded against concurrent execution — running two RQ workers on the same minute-cron sync is not idempotent by design.</li>
+      <li><b>Typo in a public route:</b> <code>subscribers/reqeust-management-key</code> (<code>statuspage/urls.py:34</code>) — changing it is a breaking URL change for anyone who bookmarked it.</li>
+    </ul>
+  </div>
+
+  <h3>Source map</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Concern</th><th>Path</th></tr></thead>
+      <tbody>
+        <tr><td>Settings, plugin loading, RQ queues</td><td class="mono">statuspage/statuspage/settings.py · configuration_example.py</td></tr>
+        <tr><td>URL map (all surfaces)</td><td class="mono">statuspage/statuspage/urls.py</td></tr>
+        <tr><td>Middleware, auth backend, dynamic config</td><td class="mono">statuspage/statuspage/{middleware,authentication}.py · config/</td></tr>
+        <tr><td>DRF bases, router, pagination, auth</td><td class="mono">statuspage/statuspage/api/</td></tr>
+        <tr><td>Model bases &amp; change-logging mixins</td><td class="mono">statuspage/statuspage/models/ · utilities/models.py</td></tr>
+        <tr><td>Cron bootstrap</td><td class="mono">statuspage/queuing/apps.py</td></tr>
+        <tr><td>Mail helper</td><td class="mono">statuspage/utilities/utils.py</td></tr>
+        <tr><td>Frontend build</td><td class="mono">statuspage/project-static/{package.json,bundle.js,tailwind.config.js} → dist/</td></tr>
+        <tr><td>Deployment units</td><td class="mono">contrib/{nginx.conf,apache.conf,gunicorn.py,status-page*.service}</td></tr>
+        <tr><td>Upgrade procedure</td><td class="mono">upgrade.sh · docs/installation/</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Generated from source inspection of <code>C:\NITZANIM\final-project\src\status-page</code> — Status-Page v2.0.17-dev.
+  Diagrams are inline SVG; this file is fully self-contained and offline-safe.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  var saved=null;
+  try{ saved=localStorage.getItem('sp-arch-theme'); }catch(e){}
+  if(saved){ root.setAttribute('data-theme',saved); }
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){
+      cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+    }
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{ localStorage.setItem('sp-arch-theme',next); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
