@@ -4,9 +4,13 @@ terraform/.terraform/
 terraform/**/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
 terraform/*.tfvars
+terraform/**/*.tfvars
 !terraform/terraform.tfvars.example
 terraform/*.tfplan
+terraform/**/*.tfplan
 .idea
 .coverage
 .vscode
