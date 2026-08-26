@@ -41,6 +41,8 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | ECS roles / task definitions | IAM-blocked | Current identity lacks `iam:ListRolePolicies`. |
 | Network Terraform | Code complete, not applied | Guarded by `create_network = false`. |
 | ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
+| Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
+| Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
 
 ## Documentation
 

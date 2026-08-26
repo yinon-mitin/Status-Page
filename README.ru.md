@@ -41,6 +41,8 @@ make check
 | ECS roles / task definitions | Заблокировано IAM | Текущий identity не имеет `iam:ListRolePolicies`. |
 | Network Terraform | Код готов, не применён | Защищён `create_network = false`. |
 | ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |
+| Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |
+| Качество Terraform | Готово | `fmt`, `validate` и recommended TFLint rules выполняются до cloud planning. |
 
 ## Документация
 

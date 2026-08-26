@@ -59,3 +59,13 @@ This log explains why project changes were made, what was verified, and any rema
 **Why:** the application depends on Redis and RQ for background processing. A container can be running while its broker connection, job serialization, or worker processing is broken.
 
 **Implementation:** `scripts/verify_runtime.py` resolves the Django project root explicitly, enqueues `sum([2, 3])` on the default queue, waits up to 30 seconds for the worker, and fails unless the job returns `5`. Local `make check` and GitHub Actions run the same script.
+
+## 2026-08-26 — Offline security and Terraform quality gates
+
+**Decision:** add repository-history secret scanning and a Terraform static-analysis gate that do not require AWS credentials.
+
+**Why:** accidental credentials must be detected before a pull request is merged, while infrastructure code should be checked more deeply than syntax before it is allowed to reach the AWS plan/apply stage.
+
+**Implementation:** `.github/workflows/security.yml` uses Gitleaks to inspect the complete Git history on pull requests and `main`. The validation workflow installs TFLint, initializes its recommended Terraform rules, and lints the entire `terraform/` tree after `fmt` and `validate`. `.dockerignore` also excludes Terraform's local cache, state, plans, and `.tfvars` files so they cannot inflate or leak into an application build context.
+
+**Scope:** this is a static quality gate, not a live `terraform plan`. A credentialed plan remains intentionally separate because it needs the approved AWS IAM/OIDC role and would query real infrastructure.

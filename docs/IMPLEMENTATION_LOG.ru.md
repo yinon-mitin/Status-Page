@@ -59,3 +59,13 @@
 **Почему:** приложение зависит от Redis и RQ для background processing. Container может быть running, хотя broker connection, job serialization или worker processing уже сломаны.
 
 **Реализация:** `scripts/verify_runtime.py` явно определяет Django project root, ставит `sum([2, 3])` в default queue, ожидает worker до 30 секунд и завершает проверку ошибкой, если job не вернула `5`. Local `make check` и GitHub Actions выполняют одинаковый script.
+
+## 2026-08-26 — Offline-проверки безопасности и качества Terraform
+
+**Решение:** добавить сканирование секретов по истории репозитория и статическую проверку Terraform, не требующие AWS credentials.
+
+**Почему:** случайно закоммиченные credentials нужно находить до merge pull request, а infrastructure code должен проходить более глубокую проверку, чем синтаксис, до стадии AWS plan/apply.
+
+**Реализация:** `.github/workflows/security.yml` использует Gitleaks для проверки полной Git history в pull requests и `main`. Validation workflow устанавливает TFLint, инициализирует recommended Terraform rules и анализирует всё дерево `terraform/` после `fmt` и `validate`. `.dockerignore` также исключает локальный cache Terraform, state, plans и `.tfvars` files, поэтому они не увеличивают контекст application build и не могут попасть в него.
+
+**Границы:** это статическая quality gate, а не live `terraform plan`. План с credentials намеренно остаётся отдельным этапом: ему нужны утверждённая AWS IAM/OIDC role и запросы к реальной инфраструктуре.

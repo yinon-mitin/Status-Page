@@ -10,3 +10,8 @@ __pycache__
 media
 statuspage/static
 venv
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/*.tfplan

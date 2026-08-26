@@ -50,6 +50,14 @@ jobs:
       - name: Validate Terraform
         run: terraform -chdir=terraform validate
 
+      - name: Install TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run Terraform static quality checks
+        run: |
+          tflint --init --config=terraform/.tflint.hcl
+          tflint --recursive --config=terraform/.tflint.hcl
+
       - name: Clean up Compose resources
         if: always()
         run: docker compose -p statuspage-ci down -v --remove-orphans

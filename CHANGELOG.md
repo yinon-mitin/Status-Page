@@ -7,6 +7,7 @@ All notable project changes are recorded here. This project follows the spirit o
 ### Changed
 
 - Excluded Git metadata from the Docker build context to keep local and CI image builds small and reproducible.
+- Excluded local Terraform caches, state, plans, and environment variable files from the Docker build context.
 - Added disabled-by-default VPC, public/internal subnet, route-table, and ALB/ECS security-group Terraform code for the next network phase.
 - Redesigned both README files with a project icon, badges, concise navigation, status table, quick start, and parallel English/Russian documentation links.
 
@@ -16,6 +17,8 @@ All notable project changes are recorded here. This project follows the spirit o
 - Makefile targets for local Compose and Terraform quality checks.
 - Full Docker Compose smoke test in GitHub Actions: health checks, NGINX HTTP, Django system check, and cleanup.
 - RQ end-to-end smoke test that verifies a Django-enqueued job completes through Redis and the worker.
+- GitHub Actions secret scanning with Gitleaks across the full repository history.
+- Terraform static quality gate using the recommended TFLint ruleset, in addition to formatting and validation.
 
 ### Verified
 

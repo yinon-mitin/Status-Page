@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs check tf-fmt tf-validate
+.PHONY: help up down logs check tf-fmt tf-validate tf-lint
 
 help:
-	@printf '%s\n' 'Targets: up, down, logs, check, tf-fmt, tf-validate'
+	@printf '%s\n' 'Targets: up, down, logs, check, tf-fmt, tf-validate, tf-lint'
 
 up:
 	docker compose up --build -d
@@ -26,3 +26,7 @@ tf-fmt:
 tf-validate:
 	terraform -chdir=terraform init -backend=false
 	terraform -chdir=terraform validate
+
+tf-lint:
+	tflint --init --config=terraform/.tflint.hcl
+	tflint --recursive --config=terraform/.tflint.hcl
