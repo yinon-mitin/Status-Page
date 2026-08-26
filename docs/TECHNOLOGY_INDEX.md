@@ -37,19 +37,21 @@ This index defines every technology and operational term used in the proposed St
 | Fargate | Serverless ECS compute engine | Runs ECS tasks without managing EC2 hosts. |
 | ALB | Application Load Balancer | Internet-facing HTTP/HTTPS entry point in two public subnets; redirects port 80, terminates TLS on 443, and routes to ECS IP targets. |
 | ACM | AWS Certificate Manager | Issues and renews the TLS certificate attached to the ALB. |
-| RDS | Relational Database Service | Provides managed PostgreSQL with backups, encryption, and patching. It is configured publicly accessible, while its SG permits 5432 only from the ECS SG. |
+| RDS | Relational Database Service | Provides private managed PostgreSQL with encryption, patching, and two-day automated backups. Its SG permits 5432 only from the ECS SG. |
 | ElastiCache for Redis | Managed Redis service | Provides managed Redis compatible with the existing queue/cache split. |
 | Secrets Manager | AWS secret store | Holds database, Django, Redis, and approved external API credentials. |
 | IAM | Identity and Access Management | Grants least-privilege permissions to people, GitHub Actions, ECS task execution, and application tasks. |
 | VPC | Virtual Private Cloud | Private AWS network boundary for the project. |
-| Subnet | VPC network segment | Separates public ALB/RDS placement, internal ECS applications, and private Redis across two AZs. |
+| Subnet | VPC network segment | Separates public ALB placement, internal ECS applications, and private RDS/Redis across two AZs. |
 | AZ | Availability Zone | Independent AWS location used to improve resilience. |
 | Security Group | Stateful virtual firewall | Allows only Internet → ALB → ECS → RDS/Redis traffic paths. |
 | SG reference | Security-group-to-security-group rule | Grants RDS port 5432 to the ECS SG without opening the database to an Internet CIDR range. |
 | Target group | ALB backend destination set | Registers ECS task IP addresses on HTTP port 80 and checks `/healthz`. |
-| Cross-zone load balancing | ALB routing across AZ boundaries | Lets ALB nodes in both public AZs route to the initial ECS targets located only in `il-central-1a`. |
+| ECS task spread | Placement across Availability Zones | Places two web tasks in the internal subnets of `il-central-1a` and `il-central-1b` for compute-level availability. |
 | `/healthz` | Application health endpoint | Returns HTTP 200 without a database query and is used by Docker, ECS, and ALB checks. |
-| NAT Gateway | Managed outbound network translation | May allow private worker tasks to call approved HTTPS APIs without accepting inbound Internet traffic. |
+| VPC endpoint | PrivateLink / gateway connection | Lets private ECS tasks reach ECR, CloudWatch Logs, Secrets Manager, and S3 without NAT or public IPs. |
+| NAT Gateway | Managed outbound network translation | Optional and disabled by default; used only temporarily if the application must call arbitrary public HTTPS services. |
+| Cloudflare DNS only | Authoritative DNS configuration | Hosts `status.yifilter.uk` DNS records while traffic terminates directly at the ALB with ACM TLS. |
 | CloudWatch | AWS observability service | Stores logs and metrics; triggers alarms for service and data-tier health. |
 | CloudTrail | AWS audit service | Records AWS management API activity for security and traceability. |
 | DNS | Domain Name System | Maps a project domain to the ALB. |
@@ -60,7 +62,7 @@ This index defines every technology and operational term used in the proposed St
 |---|---|---|
 | Terraform | Infrastructure as Code tool | Declares, reviews, and creates the AWS resources consistently. |
 | IaC | Infrastructure as Code | Practice of storing infrastructure definitions in version control. |
-| Remote state | Shared Terraform state storage | Prevents conflicting infrastructure changes and supports locking. |
+| Remote state | Shared Terraform state storage | Required before GitHub Actions performs Terraform apply: an encrypted versioned S3 backend persists state; native S3 lockfiles replace DynamoDB locking. |
 | GitHub Actions | CI/CD automation platform | Runs tests, builds images, pushes to ECR, validates Terraform, and deploys ECS services. |
 | CI/CD | Continuous Integration / Continuous Delivery | Automated path from a reviewed code change to a verified deployment. |
 | OIDC | OpenID Connect | Lets GitHub Actions receive short-lived AWS credentials without long-lived access keys. |
@@ -72,10 +74,10 @@ This index defines every technology and operational term used in the proposed St
 ## Important architecture rules
 
 1. A single Docker image is reused for web, worker, and scheduler with different commands.
-2. Initial desired count is one task for each process; the source has local-media and worker-concurrency constraints.
-3. ALB and RDS use public placement/settings; ECS and Redis remain private. Public RDS placement does not imply public database ingress.
+2. The web service starts with two tasks across two AZs; worker and scheduler remain one task each because the source has local-media and worker-concurrency constraints.
+3. Only ALB is public. ECS, RDS, and Redis are private; RDS has `publicly_accessible = false`.
 4. Secrets never enter Git, Docker layers, regular Terraform variables, or logs.
-5. RDS and Redis accept application traffic only from the ECS security group; RDS has no Internet CIDR ingress rule.
+5. RDS and Redis accept application traffic only from the ECS security group; ECS uses VPC endpoints for required AWS-service egress.
 6. EKS is intentionally not selected: its operational complexity is not justified for this small workload.
 
 ## Primary references

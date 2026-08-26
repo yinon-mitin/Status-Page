@@ -37,19 +37,21 @@
 | Fargate | Serverless ECS compute engine | Запускает ECS tasks без управления EC2 hosts. |
 | ALB | Application Load Balancer | Internet-facing HTTP/HTTPS entry point в двух public subnets; redirect port 80, TLS on 443 и routing к ECS IP targets. |
 | ACM | AWS Certificate Manager | Выпускает и обновляет TLS certificate для ALB. |
-| RDS | Relational Database Service | Предоставляет managed PostgreSQL с backups, encryption и patching. Имеет setting publicly accessible, а RDS SG разрешает 5432 только от ECS SG. |
+| RDS | Relational Database Service | Предоставляет private managed PostgreSQL с encryption, patching и двухдневными automated backups. RDS SG разрешает 5432 только от ECS SG. |
 | ElastiCache for Redis | Managed Redis service | Предоставляет managed Redis, совместимый с существующим queue/cache split. |
 | Secrets Manager | AWS secret store | Хранит database, Django, Redis и approved external API credentials. |
 | IAM | Identity and Access Management | Предоставляет least-privilege permissions людям, GitHub Actions, ECS task execution и application tasks. |
 | VPC | Virtual Private Cloud | Private AWS network boundary проекта. |
-| Subnet | VPC network segment | Разделяет public placement ALB/RDS, internal ECS applications и private Redis в двух AZ. |
+| Subnet | VPC network segment | Разделяет public placement ALB, internal ECS applications и private RDS/Redis в двух AZ. |
 | AZ | Availability Zone | Независимая AWS location для повышения resilience. |
 | Security Group | Stateful virtual firewall | Разрешает только paths Internet → ALB → ECS → RDS/Redis. |
 | SG reference | Security-group-to-security-group rule | Разрешает RDS port 5432 для ECS SG без открытия database для Internet CIDR range. |
 | Target group | Набор backend destinations ALB | Регистрирует IP addresses ECS tasks на HTTP port 80 и проверяет `/healthz`. |
-| Cross-zone load balancing | Маршрутизация ALB между AZ | Позволяет ALB nodes из обеих public AZ направлять traffic к начальным ECS targets только в `il-central-1a`. |
+| ECS task spread | Размещение по Availability Zones | Размещает две web task в internal subnets `il-central-1a` и `il-central-1b` для compute-level availability. |
 | `/healthz` | Application health endpoint | Возвращает HTTP 200 без database query и используется проверками Docker, ECS и ALB. |
-| NAT Gateway | Managed outbound network translation | При необходимости позволяет private worker tasks обращаться к approved HTTPS APIs без inbound Internet traffic. |
+| VPC endpoint | PrivateLink / gateway connection | Позволяет private ECS tasks обращаться к ECR, CloudWatch Logs, Secrets Manager и S3 без NAT и public IPs. |
+| NAT Gateway | Managed outbound network translation | Опционален и по умолчанию выключен; используется только временно, если приложению нужны произвольные public HTTPS services. |
+| Cloudflare DNS only | Authoritative DNS configuration | Хранит DNS records `status.yifilter.uk`, а traffic завершается напрямую на ALB с ACM TLS. |
 | CloudWatch | AWS observability service | Хранит logs и metrics; запускает alarms при проблемах service/data tier. |
 | CloudTrail | AWS audit service | Записывает AWS management API activity для security и traceability. |
 | DNS | Domain Name System | Связывает project domain с ALB. |
@@ -60,7 +62,7 @@
 |---|---|---|
 | Terraform | Infrastructure as Code tool | Описывает, проверяет и создаёт AWS resources единообразно. |
 | IaC | Infrastructure as Code | Практика хранения infrastructure definitions в version control. |
-| Remote state | Shared Terraform state storage | Предотвращает conflicting infrastructure changes и поддерживает locking. |
+| Remote state | Shared Terraform state storage | Нужен перед Terraform apply из GitHub Actions: encrypted versioned S3 backend сохраняет state, а native S3 lockfiles заменяют DynamoDB locking. |
 | GitHub Actions | CI/CD automation platform | Запускает tests, builds images, pushes в ECR, validates Terraform и deploys ECS services. |
 | CI/CD | Continuous Integration / Continuous Delivery | Автоматизированный путь от reviewed code change к verified deployment. |
 | OIDC | OpenID Connect | Позволяет GitHub Actions получать short-lived AWS credentials без long-lived access keys. |
@@ -72,10 +74,10 @@
 ## Важные правила архитектуры
 
 1. Один Docker image переиспользуется для web, worker и scheduler с разными commands.
-2. Начальный desired count — одна task для каждого процесса; у исходника есть local-media и worker-concurrency constraints.
-3. ALB и RDS используют public placement/settings; ECS и Redis остаются private. Public placement RDS не означает public database ingress.
+2. Web service начинает с двух task в двух AZ; worker и scheduler остаются по одной task из-за local-media и worker-concurrency constraints исходника.
+3. Public остаётся только ALB. ECS, RDS и Redis private; RDS использует `publicly_accessible = false`.
 4. Secrets никогда не попадают в Git, Docker layers, обычные Terraform variables или logs.
-5. RDS и Redis принимают application traffic только от ECS security group; у RDS нет Internet CIDR ingress rule.
+5. RDS и Redis принимают application traffic только от ECS security group; ECS использует VPC endpoints для обязательного AWS-service egress.
 6. EKS намеренно не выбран: его operational complexity не оправдана для этого небольшого workload.
 
 ## Основные источники

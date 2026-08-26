@@ -73,5 +73,6 @@ statuspage/          Django source из upstream v2.5.1
 
 - Secret values не коммитятся; runtime secrets предназначены для Secrets Manager.
 - ALB рассчитан на public subnets; ECS tasks остаются internal.
-- RDS планируется с public setting, но ingress только от ECS security group.
+- RDS остаётся private (`publicly_accessible = false`) и принимает PostgreSQL traffic только от ECS security group.
+- Production HTTPS будет использовать `status.yifilter.uk` с Cloudflare DNS only и ACM certificate на ALB.
 - Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.

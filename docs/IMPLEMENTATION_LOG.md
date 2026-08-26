@@ -69,3 +69,13 @@ This log explains why project changes were made, what was verified, and any rema
 **Implementation:** `.github/workflows/security.yml` uses Gitleaks to inspect the complete Git history on pull requests and `main`. The validation workflow installs TFLint, initializes its recommended Terraform rules, and lints the entire `terraform/` tree after `fmt` and `validate`. `.dockerignore` also excludes Terraform's local cache, state, plans, and `.tfvars` files so they cannot inflate or leak into an application build context.
 
 **Scope:** this is a static quality gate, not a live `terraform plan`. A credentialed plan remains intentionally separate because it needs the approved AWS IAM/OIDC role and would query real infrastructure.
+
+## 2026-08-26 — Production decisions confirmed
+
+**Decision:** deploy `status.yifilter.uk` through Cloudflare DNS-only to an ACM-protected ALB; keep RDS private; run two web tasks across `il-central-1a` and `il-central-1b`; retain RDS backups for two days; cap project spend at $300.
+
+**Why:** this provides a real HTTPS production endpoint, compute-level multi-AZ availability, and a database that is not internet-addressable while respecting the project budget.
+
+**Egress decision:** adopt VPC endpoints for ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3. NAT Gateway remains an optional Terraform path for arbitrary external HTTPS calls, not a permanent resource. Two permanent NAT Gateways would consume most of the budget before application resources.
+
+**State decision:** do not create DynamoDB locking. Local state is adequate during single-operator preparation; before automated GitHub Terraform apply, use an encrypted, versioned S3 backend with Terraform's native S3 lockfile.

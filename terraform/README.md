@@ -20,7 +20,9 @@ Set `create_services = true` only after supplying private application subnets, t
 
 `network.tf` implements the approved topology but is disabled by default with `create_network = false`: a VPC, public subnets in `il-central-1a` and `il-central-1b` for the internet-facing ALB, and internal application subnets in the same AZs for ECS. The ALB security group accepts public HTTP/HTTPS; the ECS security group accepts HTTP only from the ALB security group. Internal ECS subnets have no public IP assignment or direct Internet route.
 
-Review CIDRs, availability zones, private-task egress, and the data-layer security groups before enabling this layer. It is intentionally not applied during the Wednesday/Thursday milestones.
+The approved baseline uses `il-central-1a` and `il-central-1b`; `il-central-1c` is reserved for future expansion. ECS runs two web tasks across the two application subnets, while worker and scheduler each start at one task. Private task egress uses VPC endpoints for ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3. NAT Gateway is an optional, disabled-by-default path only for application features that need arbitrary public HTTPS egress.
+
+RDS must be created with `publicly_accessible = false`, a private DB subnet group, ECS-SG-only ingress on 5432, encryption, and two-day automated backup retention. Cloudflare hosts DNS for `status.yifilter.uk` in DNS-only mode; ACM validation and the application CNAME records are added in Cloudflare after Terraform exposes their values.
 
 ## Safe first use
 
@@ -42,7 +44,7 @@ terraform apply
 
 Do not commit `terraform.tfvars`, state files, plans, or secret values.
 
-This account requires an `Owner` tag on taggable resources; the default value is `yinon`. Change `owner` in `terraform.tfvars` if the account's policy requires a different exact value. Before a shared or production deployment, move the local state to an approved remote backend with locking.
+This account requires an `Owner` tag on taggable resources; the default value is `yinon`. Change `owner` in `terraform.tfvars` if the account's policy requires a different exact value. Local state is acceptable only while one operator is preparing and reviewing the foundation. Before GitHub Actions performs Terraform `apply`, use an encrypted, versioned S3 backend with `use_lockfile = true`; DynamoDB locking is not required.
 
 ## GitHub Actions prerequisites
 

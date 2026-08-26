@@ -1,6 +1,6 @@
 # Yinon Final Project — Status-Page AWS Architecture
 
-**Status:** approved direction; local Docker milestone complete · **Language:** English · **Date:** 24 August 2026
+**Status:** approved production direction; local Docker milestone complete · **Language:** English · **Date:** 26 August 2026
 
 ## Evidence boundary
 
@@ -29,19 +29,20 @@ The target is Docker + ECR + ECS Fargate + ALB/ACM + RDS PostgreSQL + ElastiCach
 
 ```mermaid
 flowchart TB
-  U[Internet users / API clients] --> ALB[Public ALB / HTTPS 443]
+  U[Internet users / API clients] --> CF[Cloudflare DNS only\nstatus.yifilter.uk]
+  CF --> ALB[Public ALB / HTTPS 443]
   ACM[ACM certificate] -.-> ALB
   subgraph VPC[AWS VPC — two Availability Zones]
     subgraph PUB[Public subnets — il-central-1a and il-central-1b]
       ALB
-      RDS[RDS PostgreSQL — publicly accessible setting / :5432]
     end
     subgraph APP[Private application subnets]
       WEB[ECS web / NGINX → Gunicorn-Django]
       WKR[ECS worker / RQ Worker]
       SCH[ECS scheduler / RQ Scheduler]
     end
-    subgraph DATA[Private data subnets]
+    subgraph DATA[Private data subnets — no public IPs]
+      RDS[RDS PostgreSQL :5432]
       REDIS[ElastiCache Redis :6379 / DB 0 queues · DB 1 cache]
     end
     SM[Secrets Manager]
@@ -55,20 +56,22 @@ flowchart TB
   WEB & WKR & SCH --> CW
 ```
 
-The source three-process runtime is preserved. AWS services and delivery tooling are target decisions. The initial ECS targets are placed in `il-central-1a`; the ALB still attaches to public subnets in both `il-central-1a` and `il-central-1b`. ALB cross-zone load balancing remains enabled so the node in either AZ can route to the targets in AZ A.
+The source three-process runtime is preserved. AWS services and delivery tooling are target decisions. The ALB spans public subnets in `il-central-1a` and `il-central-1b`; the web service runs two tasks spread across the corresponding internal application subnets. Worker and scheduler start with one task each. RDS and Redis remain private.
 
 ## Decisions and components
 
 | Area | Decision | Purpose / rationale |
 |---|---|---|
 | Docker + ECR | One image, Git-SHA tag | Reproducible web, worker, and scheduler commands from the same image. |
-| ECS Fargate | Three ECS workloads | Managed containers without EC2 administration; one web, worker, and scheduler task initially. |
-| ALB + ACM | Internet-facing ALB in two public subnets | HTTPS, HTTP redirect, certificate lifecycle, and `/healthz` checks. Target type is `ip`; cross-zone routing is explicitly enabled. |
+| ECS Fargate | Three ECS workloads | Managed containers without EC2 administration; two web tasks across two internal subnets, plus one worker and one scheduler task initially. |
+| ALB + ACM + Cloudflare DNS | Internet-facing ALB in two public subnets | `status.yifilter.uk` is DNS-only in Cloudflare; ACM validates and terminates HTTPS on the ALB. HTTP redirects to HTTPS and `/healthz` checks use IP targets. |
 | NGINX | In the web task | Keeps source `/static/` and Gunicorn reverse-proxy contract. |
-| RDS PostgreSQL | Publicly accessible managed database | Meets the mentor-approved topology while its RDS SG allows port 5432 only from the ECS SG; no Internet CIDR rule is allowed. |
+| RDS PostgreSQL | Private managed database | `publicly_accessible = false`; its SG allows port 5432 only from the ECS SG. Automated backups are retained for two days. |
 | ElastiCache Redis | Private managed Redis | Preserves source cache/queue split; port 6379 only from ECS. |
 | Secrets Manager + IAM | Runtime credentials / least privilege | Store `SECRET_KEY`, database and Redis credentials, and approved external API keys only. |
 | CloudWatch | Logs, metrics, alarms | Service health, restarts, capacity, RDS, and Redis visibility. |
+| VPC endpoints | Private AWS-service egress | ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3 are reachable from ECS without NAT or public task IPs. |
+| NAT Gateway | Optional, disabled by default | Retained as a Terraform option only if application features must call arbitrary external HTTPS services; it is not a permanent baseline because of budget. |
 | Terraform | Infrastructure as Code | Version-controlled VPC, subnets, SGs, services, data tier, logging, and outputs. |
 | GitHub Actions + OIDC | CI/CD | Tests and deploys with short-lived AWS credentials. |
 | EKS | Not selected | Kubernetes operational overhead is unnecessary for this small workload. |
@@ -77,16 +80,17 @@ The source three-process runtime is preserved. AWS services and delivery tooling
 
 ## Network and security model
 
-- VPC `/16` across two AZs. The internet-facing ALB uses public subnets in both AZs. ECS tasks stay in internal application subnets; the initial tasks run only in `il-central-1a`. ElastiCache stays private.
+- VPC `/16` uses `il-central-1a` and `il-central-1b`; `il-central-1c` is confirmed available and reserved for future expansion. The internet-facing ALB uses public subnets in both active AZs. ECS tasks stay in internal application subnets with no public IPs; two web tasks are spread across them. RDS and ElastiCache stay private.
 - The ALB target group uses HTTP port 80, target type `ip`, cross-zone load balancing, and `/healthz` with matcher `200`, 15-second interval, healthy threshold 2, and unhealthy threshold 3.
 - Security groups allow Internet → ALB (80/443), ALB SG → ECS web SG (80), ECS SG → RDS SG (5432), and ECS SG → Redis SG (6379).
-- RDS is configured as publicly accessible and placed in a suitable DB subnet group, but its SG has no public CIDR ingress: database access is admitted only when the source carries the ECS SG. Redis has no public endpoint. Worker egress is restricted to approved HTTPS integrations.
+- RDS has `publicly_accessible = false` and a private DB subnet group. Redis has no public endpoint. Data services accept traffic only from the ECS SG.
+- ECS reaches required AWS services through interface endpoints for ECR API, ECR Docker, CloudWatch Logs, and Secrets Manager plus an S3 gateway endpoint. Endpoint SGs allow HTTPS only from the ECS SG. No NAT Gateway is enabled in the cost-conscious baseline.
 - Use ACM TLS, RDS encryption and backups, compatible Redis TLS/authentication, IAM least privilege, GitHub OIDC, MFA for humans, and Secrets Manager.
 - Preserve Django proxy/security settings, CSRF, secure cookies, and source OTP/TOTP protections.
 
 ## CI/CD
 
-**Application:** test → Docker build → smoke test → GitHub OIDC → ECR SHA image → ECS task definition → rolling deployment → ECS/ALB health verification.
+**Application:** tests + RQ smoke test + secret scan + Terraform static checks → Docker build → GitHub OIDC → ECR SHA image → ECS task definition → automatic rolling deployment from protected `main` → ECS/ALB health verification.
 
 **Infrastructure:** `terraform fmt -check` → `terraform init` → `terraform validate` → static/security checks → reviewed plan → protected approved apply.
 
@@ -101,21 +105,21 @@ terraform/
 └── modules/{network,security-groups,ecr,alb,ecs,rds,redis,iam,secrets,monitoring}/
 ```
 
-Use remote state and locking. Secrets must not be placed in `*.tfvars`.
+The current single-operator baseline keeps local state while infrastructure is being prepared. Before Terraform `apply` runs from GitHub Actions, migrate state to an encrypted, versioned S3 backend with native S3 lockfiles (`use_lockfile = true`); DynamoDB locking is deliberately not used. Secrets must not be placed in `*.tfvars`.
 
 ## Constraints and roadmap
 
 - **Completed Wednesday milestone:** Docker images and Docker Compose run web, worker, scheduler, PostgreSQL, Redis, NGINX, migrations, static files, `/healthz`, and an executed RQ smoke job locally.
-- Start with one task per runtime role. Scale only after media is durable (S3/EFS or a formal restriction) and worker jobs are idempotent/locked.
-- Redis is on the request critical path; test recovery. Confirm AWS region, domain, budget, retention, RPO/RTO, and approved external HTTPS integrations.
+- Start with two web tasks in two AZs to demonstrate compute availability; worker and scheduler remain one task each until media is durable (S3/EFS or a formal restriction) and worker jobs are idempotent/locked.
+- Redis is on the request critical path; test recovery. The cost ceiling is $300; create budget alerts before applying persistent resources. If the application must call arbitrary public endpoints, enable the optional NAT path only for the necessary demonstration period.
 
 | Phase | Milestone | Acceptance criteria |
 |---|---|---|
 | 0 | Decisions | Scope and risk register are recorded. |
 | 1 | Local runtime — complete | Complete Docker Compose stack works and returns HTTP 200 through NGINX. |
 | 2 | Container — complete | One application image starts three roles; a separate NGINX image fronts web; no production secrets are in either image. |
-| 3 | Foundation | Terraform creates network, SGs, state, and tags. |
-| 4 | Data | Publicly accessible RDS restricted to ECS SG and private Redis pass migration, cache, and queue tests. |
+| 3 | Foundation | Terraform creates network, SGs, VPC endpoints, tags, and budget controls. |
+| 4 | Data | Private RDS (two-day backups) and private Redis pass migration, cache, and queue tests. |
 | 5 | ECS/ingress | Stable tasks, ALB/ACM HTTPS, and health checks work. |
 | 6 | CI/CD | OIDC, reviewed deploy, logs, alarms, and rollback are tested. |
 | 7 | Validation | Implementation matches the architecture and is reproducible. |

@@ -10,6 +10,7 @@ All notable project changes are recorded here. This project follows the spirit o
 - Excluded local Terraform caches, state, plans, and environment variable files from the Docker build context.
 - Added disabled-by-default VPC, public/internal subnet, route-table, and ALB/ECS security-group Terraform code for the next network phase.
 - Redesigned both README files with a project icon, badges, concise navigation, status table, quick start, and parallel English/Russian documentation links.
+- Confirmed the production topology: private RDS, Cloudflare DNS-only HTTPS at `status.yifilter.uk`, two-AZ web tasks, two-day RDS backups, and a $300 cost ceiling.
 
 ### Added
 
@@ -19,6 +20,7 @@ All notable project changes are recorded here. This project follows the spirit o
 - RQ end-to-end smoke test that verifies a Django-enqueued job completes through Redis and the worker.
 - GitHub Actions secret scanning with Gitleaks across the full repository history.
 - Terraform static quality gate using the recommended TFLint ruleset, in addition to formatting and validation.
+- Documented endpoint-first private ECS egress; NAT Gateway is now an optional, disabled-by-default Terraform path.
 
 ### Verified
 

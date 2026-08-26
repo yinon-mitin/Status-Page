@@ -69,3 +69,13 @@
 **Реализация:** `.github/workflows/security.yml` использует Gitleaks для проверки полной Git history в pull requests и `main`. Validation workflow устанавливает TFLint, инициализирует recommended Terraform rules и анализирует всё дерево `terraform/` после `fmt` и `validate`. `.dockerignore` также исключает локальный cache Terraform, state, plans и `.tfvars` files, поэтому они не увеличивают контекст application build и не могут попасть в него.
 
 **Границы:** это статическая quality gate, а не live `terraform plan`. План с credentials намеренно остаётся отдельным этапом: ему нужны утверждённая AWS IAM/OIDC role и запросы к реальной инфраструктуре.
+
+## 2026-08-26 — Подтверждены production-решения
+
+**Решение:** развернуть `status.yifilter.uk` через Cloudflare DNS-only на защищённый ACM ALB; оставить RDS private; запустить две web task в `il-central-1a` и `il-central-1b`; хранить RDS backups два дня; ограничить бюджет проекта $300.
+
+**Почему:** это даёт настоящий HTTPS production endpoint, compute-level multi-AZ availability и database без Internet-addressability, сохраняя бюджет проекта.
+
+**Egress-решение:** использовать VPC endpoints для ECR API/Docker, CloudWatch Logs, Secrets Manager и S3. NAT Gateway остаётся опциональным Terraform path для произвольных внешних HTTPS calls, но не постоянным ресурсом. Два постоянных NAT Gateway израсходуют большую часть бюджета ещё до application resources.
+
+**Решение по state:** не создавать DynamoDB locking. Local state достаточен на этапе single-operator preparation; перед automated GitHub Terraform apply использовать encrypted versioned S3 backend с Terraform native S3 lockfile.
