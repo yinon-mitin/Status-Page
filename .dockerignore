@@ -11,6 +11,7 @@ media
 statuspage/static
 venv
 terraform/.terraform/
+terraform/**/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/*.tfvars

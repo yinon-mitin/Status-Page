@@ -79,3 +79,13 @@
 **Egress-решение:** использовать VPC endpoints для ECR API/Docker, CloudWatch Logs, Secrets Manager и S3. NAT Gateway остаётся опциональным Terraform path для произвольных внешних HTTPS calls, но не постоянным ресурсом. Два постоянных NAT Gateway израсходуют большую часть бюджета ещё до application resources.
 
 **Решение по state:** не создавать DynamoDB locking. Local state достаточен на этапе single-operator preparation; перед automated GitHub Terraform apply использовать encrypted versioned S3 backend с Terraform native S3 lockfile.
+
+## 2026-08-26 — Дизайн изолированного ECR/ECS Terraform smoke test
+
+**Решение:** тестировать ECR и ECS через отдельный local Terraform state и временный resource prefix `yinon-status-page-smoke-*`, а не менять или удалять существующий stack `statuspage-dev`.
+
+**Почему:** shared training account содержит ранее созданный state и resources других учеников. Изолированный stack делает ownership видимым через tags `Owner=yinon` и `Project=yinon-status-page`, позволяет выполнить настоящую idempotency check и даёт `terraform destroy` точную и безопасную цель.
+
+**Scope:** test создаёт два временных ECR repositories и ECS cluster. Fargate task definition, ссылающаяся на pushed local application image, опциональна и требует project-scoped execution-role ARN. Test намеренно не запускает task и не создаёт network, IAM, data или ingress resources.
+
+**Результат:** оба локально собранных image были pushed с immutable tag `smoke-3910843` и проверены по digest в ECR. Tagged ECS cluster был active, а `terraform plan -detailed-exitcode` вернул **No changes**, что доказывает идемпотентность созданных ресурсов. Первая регистрация Fargate task definition корректно завершилась ошибкой: private ECR image требует ECS execution role. Поэтому в smoke configuration этот resource теперь условен и требует project-scoped role ARN, вместо переиспользования generic legacy role. Destroy plan удалил только два временных repository (включая images) и temporary ECS cluster; финальные read-only checks подтвердили отсутствие repositories и статус cluster `INACTIVE`.

@@ -79,3 +79,13 @@ This log explains why project changes were made, what was verified, and any rema
 **Egress decision:** adopt VPC endpoints for ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3. NAT Gateway remains an optional Terraform path for arbitrary external HTTPS calls, not a permanent resource. Two permanent NAT Gateways would consume most of the budget before application resources.
 
 **State decision:** do not create DynamoDB locking. Local state is adequate during single-operator preparation; before automated GitHub Terraform apply, use an encrypted, versioned S3 backend with Terraform's native S3 lockfile.
+
+## 2026-08-26 — Isolated ECR/ECS Terraform smoke-test design
+
+**Decision:** test ECR and ECS using a separate local Terraform state and the temporary `yinon-status-page-smoke-*` resource prefix rather than modifying or destroying the existing `statuspage-dev` stack.
+
+**Why:** the shared training account contains prior state and other students' resources. An isolated stack makes ownership visible through `Owner=yinon` and `Project=yinon-status-page` tags, allows a genuine idempotency check, and gives `terraform destroy` an exact and safe target.
+
+**Scope:** the test creates two temporary ECR repositories and an ECS cluster. A Fargate task definition referencing the pushed local application image is optional and requires a project-scoped execution-role ARN. The test deliberately does not run a task or create network, IAM, data, or ingress resources.
+
+**Result:** both locally built images were pushed with immutable tag `smoke-3910843` and verified by digest in ECR. The tagged ECS cluster was active, and `terraform plan -detailed-exitcode` reported **No changes**, proving idempotency for the created resources. The initial Fargate task-definition registration correctly failed because a private ECR image requires an ECS execution role; the smoke configuration now makes that resource conditional on a project-scoped role ARN instead of reusing the generic legacy role. The destroy plan removed only the two temporary repositories (including images) and temporary ECS cluster; final read-only checks confirmed the repositories were absent and the cluster was `INACTIVE`.

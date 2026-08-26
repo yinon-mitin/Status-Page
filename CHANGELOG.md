@@ -21,11 +21,13 @@ All notable project changes are recorded here. This project follows the spirit o
 - GitHub Actions secret scanning with Gitleaks across the full repository history.
 - Terraform static quality gate using the recommended TFLint ruleset, in addition to formatting and validation.
 - Documented endpoint-first private ECS egress; NAT Gateway is now an optional, disabled-by-default Terraform path.
+- Added an isolated `yinon-status-page-smoke-*` Terraform configuration for temporary ECR/ECS image-reference and idempotency testing; it is explicitly destroyed after verification.
 
 ### Verified
 
 - Re-ran the Wednesday Docker Compose acceptance checks: all six services are up, `/healthz` and the homepage return HTTP 200, and `manage.py check` passes.
 - Rechecked the Thursday AWS and CI deliverables: both ECR repositories are immutable and scan on push; the ECS cluster is active with Container Insights; GitHub Actions validation is successful.
+- Completed an isolated ECR/ECS smoke test: pushed both local images to temporary `yinon-status-page-smoke-*` repositories, confirmed a no-change Terraform plan, and destroyed the two repositories, their images, and the temporary ECS cluster.
 
 ## [2026-08-24]
 
