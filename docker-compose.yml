@@ -16,11 +16,12 @@ x-app: &app
     POSTGRES_PORT: 5432
     REDIS_HOST: redis
     REDIS_PORT: 6379
-    STATUS_PAGE_ALLOWED_HOSTS: ${STATUS_PAGE_ALLOWED_HOSTS:-localhost,127.0.0.1,web,nginx}
+    STATUS_PAGE_ALLOWED_HOSTS: ${STATUS_PAGE_ALLOWED_HOSTS:-localhost,127.0.0.1,10.0.0.88,web,nginx}
     STATUS_PAGE_SITE_URL: ${STATUS_PAGE_SITE_URL:-http://localhost:8081}
     STATUS_PAGE_SECRET_KEY: ${STATUS_PAGE_SECRET_KEY:-local-development-key-change-before-deployment}
     STATUS_PAGE_TIME_ZONE: ${STATUS_PAGE_TIME_ZONE:-Asia/Jerusalem}
     STATUS_PAGE_STATIC_ROOT: /srv/status-page/static
+    STATUS_PAGE_CSRF_TRUSTED_ORIGINS: ${STATUS_PAGE_CSRF_TRUSTED_ORIGINS:-http://localhost:8081,http://10.0.0.88:8081}
   restart: unless-stopped
 
 services:
