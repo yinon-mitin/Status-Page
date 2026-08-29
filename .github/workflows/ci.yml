@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check Docker Compose configuration
         run: docker compose config --quiet
@@ -41,7 +41,7 @@ jobs:
         run: docker compose -p statuspage-ci run --rm --no-deps --workdir /opt/status-page web mkdocs build --strict
 
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
 
@@ -55,7 +55,7 @@ jobs:
         run: terraform -chdir=terraform validate
 
       - name: Install TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@v5
 
       - name: Run Terraform static quality checks
         run: |
