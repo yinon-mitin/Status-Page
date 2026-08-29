@@ -40,6 +40,9 @@ jobs:
       - name: Build documentation
         run: docker compose -p statuspage-ci run --rm --no-deps --workdir /opt/status-page web mkdocs build --strict
 
+      - name: Validate OrbStack Cloud-Init contract
+        run: docker compose -p statuspage-ci run --rm --no-deps --entrypoint python --workdir /opt/status-page web scripts/validate_cloud_init.py
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v4
         with:

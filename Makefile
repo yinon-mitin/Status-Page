@@ -28,7 +28,7 @@ test:
 docs:
 	docker compose run --rm --no-deps --workdir /opt/status-page web mkdocs build --strict
 
-verify: check test docs tf-fmt tf-validate tf-lint
+verify: check test docs vm-cloud-init-check tf-fmt tf-validate tf-lint
 	@printf '%s\n' 'Local verification passed.'
 
 vm-status:
