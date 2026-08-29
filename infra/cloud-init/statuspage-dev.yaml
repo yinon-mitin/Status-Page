@@ -1,0 +1,70 @@
+#cloud-config
+
+hostname: statuspage-dev
+manage_etc_hosts: true
+
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - python3
+  - python3-venv
+
+users:
+  - default
+  - name: statuspage
+    gecos: Status-Page development service user
+    groups: [docker]
+    shell: /bin/bash
+    lock_passwd: true
+
+write_files:
+  - path: /etc/systemd/system/statuspage-dev.service
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Status-Page development Compose stack
+      Requires=docker.service
+      After=docker.service network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      WorkingDirectory=/opt/status-page
+      ExecStart=/usr/bin/docker compose up -d --wait --wait-timeout 120
+      ExecStop=/usr/bin/docker compose down
+      TimeoutStartSec=180
+      TimeoutStopSec=120
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /usr/local/bin/statuspage-dev-check
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      set -eu
+      cd /opt/status-page
+      docker compose ps
+      curl --fail --silent --show-error http://127.0.0.1:8081/healthz
+      echo
+      docker compose exec -T web python manage.py check
+      docker compose exec -T web python manage.py test
+      docker compose exec -T web python /opt/status-page/scripts/verify_runtime.py
+
+runcmd:
+  - install -d -o statuspage -g statuspage -m 0755 /opt/status-page
+  - sh -c 'curl -fsSL https://get.docker.com | sh'
+  - systemctl enable --now docker
+  - systemctl daemon-reload
+  - systemctl enable statuspage-dev.service
+  - touch /opt/status-page/.cloud-init-ready
+  - chown -R statuspage:statuspage /opt/status-page
+
+final_message: 'Status-Page dev VM bootstrap completed after $UPTIME seconds.'
