@@ -280,7 +280,7 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_ROOT = BASE_DIR + '/static'
+STATIC_ROOT = os.getenv('STATUS_PAGE_STATIC_ROOT', BASE_DIR + '/static')
 STATIC_URL = f'/{BASE_PATH}static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'project-static', 'dist'),

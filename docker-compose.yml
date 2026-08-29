@@ -20,6 +20,7 @@ x-app: &app
     STATUS_PAGE_SITE_URL: ${STATUS_PAGE_SITE_URL:-http://localhost:8081}
     STATUS_PAGE_SECRET_KEY: ${STATUS_PAGE_SECRET_KEY:-local-development-key-change-before-deployment}
     STATUS_PAGE_TIME_ZONE: ${STATUS_PAGE_TIME_ZONE:-Asia/Jerusalem}
+    STATUS_PAGE_STATIC_ROOT: /srv/status-page/static
   restart: unless-stopped
 
 services:
