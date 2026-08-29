@@ -8,12 +8,22 @@ variable "project" {
   description = "Short project identifier used in AWS resource names and tags."
   type        = string
   default     = "statuspage"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$", var.project))
+    error_message = "project must be 3-32 characters, use lowercase letters, numbers, and hyphens, and start/end with a letter or number."
+  }
 }
 
 variable "environment" {
   description = "Deployment environment, for example dev or prod."
   type        = string
   default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "prod"], var.environment)
+    error_message = "environment must be exactly dev or prod so resource and state isolation remains explicit."
+  }
 }
 
 variable "owner" {

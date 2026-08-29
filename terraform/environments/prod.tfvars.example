@@ -1,0 +1,15 @@
+# Production environment example.
+# Use a separate backend key/state from development. Do not use dev IDs,
+# endpoints, or secret ARNs here.
+
+aws_region  = "il-central-1"
+project     = "statuspage"
+environment = "prod"
+owner       = "yinon"
+
+# Production remains disabled until all external approvals and recovery gates
+# are complete.
+create_network  = false
+create_services = false
+
+image_tag = "sha-REPLACE_WITH_GIT_SHA"

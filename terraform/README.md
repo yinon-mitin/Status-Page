@@ -44,6 +44,23 @@ terraform apply
 
 Do not commit `terraform.tfvars`, state files, plans, or secret values.
 
+## Environment isolation
+
+Development and production use the same Terraform code but must use separate
+state objects and variable files. Start with the checked-in examples:
+
+```bash
+cp terraform/environments/dev.tfvars.example terraform/dev.tfvars
+terraform -chdir=terraform init -backend-config="key=statuspage/dev/terraform.tfstate"
+terraform -chdir=terraform plan -var-file=dev.tfvars
+```
+
+Use a different backend key and `prod.tfvars` for production. Never reuse a
+state file, subnet ID, database endpoint, Redis endpoint, or Secrets Manager
+ARN between environments. The `environment` variable is deliberately limited
+to `dev` and `prod` so accidental environment names cannot silently create a
+third, unmanaged deployment boundary.
+
 This account requires an `Owner` tag on taggable resources; the default value is `yinon`. Change `owner` in `terraform.tfvars` if the account's policy requires a different exact value. Local state is acceptable only while one operator is preparing and reviewing the foundation. Before GitHub Actions performs Terraform `apply`, use an encrypted, versioned S3 backend with `use_lockfile = true`; DynamoDB locking is not required.
 
 ## GitHub Actions prerequisites

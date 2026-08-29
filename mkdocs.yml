@@ -59,6 +59,17 @@ extra_css:
     - extra.css
 nav:
     - Introduction: 'index.md'
+    - Project:
+        - Architecture: 'ARCHITECTURE.md'
+        - Architecture (русский): 'ARCHITECTURE.ru.md'
+        - Technology index: 'TECHNOLOGY_INDEX.md'
+        - Technology index (русский): 'TECHNOLOGY_INDEX.ru.md'
+        - Milestone audit: 'MILESTONE_AUDIT.md'
+        - Milestone audit (русский): 'MILESTONE_AUDIT.ru.md'
+        - Thursday status: 'THURSDAY_STATUS.md'
+        - Thursday status (русский): 'THURSDAY_STATUS.ru.md'
+        - Implementation log: 'IMPLEMENTATION_LOG.md'
+        - Implementation log (русский): 'IMPLEMENTATION_LOG.ru.md'
     - Installation:
         - Install Status-Page: 'installation/index.md'
         - 1. PostgreSQL: 'installation/1-postgresql.md'

@@ -1,0 +1,15 @@
+# Development environment example.
+# Use a separate backend key/state from production. Never copy production IDs,
+# endpoints, or secret ARNs into this file.
+
+aws_region  = "il-central-1"
+project     = "statuspage"
+environment = "dev"
+owner       = "yinon"
+
+# Keep false until the network/data/ALB inputs are reviewed and available.
+create_network  = false
+create_services = false
+
+# Dev should use its own image tag and its own runtime endpoints/secrets.
+image_tag = "sha-REPLACE_WITH_GIT_SHA"

@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs check tf-fmt tf-validate tf-lint
+.PHONY: help up down logs check test docs verify tf-fmt tf-validate tf-lint
 
 help:
-	@printf '%s\n' 'Targets: up, down, logs, check, tf-fmt, tf-validate, tf-lint'
+	@printf '%s\n' 'Targets: up, down, logs, check, test, docs, verify, tf-fmt, tf-validate, tf-lint'
 
 up:
 	docker compose up --build -d
@@ -20,6 +20,15 @@ check:
 	docker compose exec -T web python manage.py check
 	docker compose exec -T web python /opt/status-page/scripts/verify_runtime.py
 
+test:
+	docker compose exec -T web python manage.py test
+
+docs:
+	docker compose run --rm --no-deps --workdir /opt/status-page web mkdocs build --strict
+
+verify: check test docs tf-fmt tf-validate tf-lint
+	@printf '%s\n' 'Local verification passed.'
+
 tf-fmt:
 	terraform -chdir=terraform fmt -recursive
 
@@ -28,5 +37,5 @@ tf-validate:
 	terraform -chdir=terraform validate
 
 tf-lint:
-	tflint --init --config=terraform/.tflint.hcl
-	tflint --recursive --config=terraform/.tflint.hcl
+	tflint --chdir=terraform --config=.tflint.hcl --init
+	tflint --chdir=terraform --config=.tflint.hcl

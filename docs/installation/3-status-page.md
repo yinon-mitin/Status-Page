@@ -130,7 +130,7 @@ This parameter holds the database configuration details. You must define the use
 DATABASE = {
     'NAME': 'status-page',          # Database name
     'USER': 'status-page',          # PostgreSQL username
-    'PASSWORD': 'abcdefgh123456',   # PostgreSQL password
+    'PASSWORD': '<your-database-password>',  # PostgreSQL password
     'HOST': 'localhost',            # Database server
     'PORT': '',                     # Database port (leave blank for default)
     'CONN_MAX_AGE': 300,            # Max database connection age (seconds)
