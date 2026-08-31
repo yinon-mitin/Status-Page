@@ -1,15 +1,3 @@
-data "aws_iam_policy_document" "ecs_assume_role" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
-    }
-  }
-}
-
 resource "aws_ecr_repository" "app" {
   name                 = "${var.project}-${var.environment}-app"
   image_tag_mutability = "IMMUTABLE"
@@ -95,102 +83,6 @@ resource "aws_ecs_cluster" "this" {
   tags = local.resource_tags
 }
 
-resource "aws_iam_role" "task_execution" {
-  name               = "${var.project}-${var.environment}-ecs-execution"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
-}
-
-resource "aws_iam_role_policy_attachment" "task_execution" {
-  role       = aws_iam_role.task_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-data "aws_iam_policy_document" "task_execution_secrets" {
-  dynamic "statement" {
-    for_each = length(var.runtime_secret_arns) == 0 ? [] : [1]
-
-    content {
-      effect    = "Allow"
-      actions   = ["secretsmanager:GetSecretValue"]
-      resources = values(var.runtime_secret_arns)
-    }
-  }
-}
-
-resource "aws_iam_role_policy" "task_execution_secrets" {
-  count  = length(var.runtime_secret_arns) == 0 ? 0 : 1
-  name   = "read-runtime-secrets"
-  role   = aws_iam_role.task_execution.id
-  policy = data.aws_iam_policy_document.task_execution_secrets.json
-}
-
-resource "aws_iam_role" "task" {
-  name               = "${var.project}-${var.environment}-ecs-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
-}
-
-data "aws_iam_policy_document" "github_actions_ecr_assume_role" {
-  count = var.github_oidc_provider_arn == null ? 0 : 1
-
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    principals {
-      type        = "Federated"
-      identifiers = [var.github_oidc_provider_arn]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringLike"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/main"]
-    }
-  }
-}
-
-resource "aws_iam_role" "github_actions_ecr_publish" {
-  count              = var.github_oidc_provider_arn == null ? 0 : 1
-  name               = "${var.project}-${var.environment}-github-ecr-publish"
-  assume_role_policy = data.aws_iam_policy_document.github_actions_ecr_assume_role[0].json
-}
-
-data "aws_iam_policy_document" "github_actions_ecr_publish" {
-  statement {
-    effect    = "Allow"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:CompleteLayerUpload",
-      "ecr:InitiateLayerUpload",
-      "ecr:PutImage",
-      "ecr:UploadLayerPart",
-    ]
-    resources = [
-      aws_ecr_repository.app.arn,
-      aws_ecr_repository.nginx.arn,
-    ]
-  }
-}
-
-resource "aws_iam_role_policy" "github_actions_ecr_publish" {
-  count  = var.github_oidc_provider_arn == null ? 0 : 1
-  name   = "push-only-ecr-images"
-  role   = aws_iam_role.github_actions_ecr_publish[0].id
-  policy = data.aws_iam_policy_document.github_actions_ecr_publish.json
-}
-
 locals {
   resource_tags = {
     ManagedBy   = "Terraform"
@@ -229,8 +121,8 @@ resource "aws_ecs_task_definition" "web" {
   network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn       = aws_iam_role.task_execution.arn
-  task_role_arn            = aws_iam_role.task.arn
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn            = var.ecs_task_role_arn
   tags                     = local.resource_tags
 
   container_definitions = jsonencode([
@@ -277,8 +169,8 @@ resource "aws_ecs_task_definition" "worker" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.task_execution.arn
-  task_role_arn            = aws_iam_role.task.arn
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn            = var.ecs_task_role_arn
   tags                     = local.resource_tags
 
   container_definitions = jsonencode([merge(local.app_container, {
@@ -301,8 +193,8 @@ resource "aws_ecs_task_definition" "scheduler" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.task_execution.arn
-  task_role_arn            = aws_iam_role.task.arn
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn            = var.ecs_task_role_arn
   tags                     = local.resource_tags
 
   container_definitions = jsonencode([merge(local.app_container, {

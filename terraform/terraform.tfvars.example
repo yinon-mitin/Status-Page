@@ -2,14 +2,14 @@
 # Do not put secret values in this file; provide Secrets Manager ARNs instead.
 
 aws_region  = "il-central-1"
-project     = "statuspage"
+project     = "yinon-status-page"
 environment = "dev"
 owner       = "yinon"
 image_tag   = "sha-REPLACE_WITH_GIT_SHA"
 
-# Create this account-level OIDC provider once, then supply its ARN here:
-# https://token.actions.githubusercontent.com
-github_oidc_provider_arn = "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+# IAM roles are created and maintained manually. Terraform only consumes ARNs.
+ecs_execution_role_arn = "arn:aws:iam::ACCOUNT_ID:role/yinon-status-page-prod-ecs-execution"
+ecs_task_role_arn      = "arn:aws:iam::ACCOUNT_ID:role/yinon-status-page-prod-ecs-task"
 
 create_services       = false
 create_network        = false

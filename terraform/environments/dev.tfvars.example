@@ -3,7 +3,7 @@
 # endpoints, or secret ARNs into this file.
 
 aws_region  = "il-central-1"
-project     = "statuspage"
+project     = "yinon-status-page"
 environment = "dev"
 owner       = "yinon"
 

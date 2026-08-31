@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project" {
   description = "Short project identifier used in AWS resource names and tags."
   type        = string
-  default     = "statuspage"
+  default     = "yinon-status-page"
 
   validation {
     condition     = can(regex("^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$", var.project))
@@ -106,17 +106,18 @@ variable "runtime_secret_arns" {
   default     = {}
 }
 
-variable "github_oidc_provider_arn" {
-  description = "Existing account-level GitHub Actions OIDC provider ARN. When supplied, Terraform creates the narrowly scoped ECR publishing role."
+variable "ecs_execution_role_arn" {
+  description = "ARN of the manually managed ECS task execution role. Terraform must not manage this role."
   type        = string
   default     = null
   nullable    = true
 }
 
-variable "github_repository" {
-  description = "GitHub repository allowed to assume the ECR publishing role."
+variable "ecs_task_role_arn" {
+  description = "ARN of the manually managed ECS task role. Terraform must not manage this role."
   type        = string
-  default     = "yinon-mitin/Status-Page"
+  default     = null
+  nullable    = true
 }
 
 variable "create_network" {
