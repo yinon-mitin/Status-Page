@@ -3,7 +3,6 @@ FROM node:20-bookworm-slim AS frontend
 WORKDIR /opt/status-page/statuspage/project-static
 
 COPY statuspage/project-static/package.json statuspage/project-static/yarn.lock statuspage/project-static/.yarnrc.yml ./
-COPY statuspage/project-static/.yarn ./.yarn
 
 RUN corepack enable \
     && yarn install --immutable
