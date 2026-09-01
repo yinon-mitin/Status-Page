@@ -44,6 +44,11 @@ terraform apply
 
 Do not commit `terraform.tfvars`, state files, plans, or secret values.
 
+IAM roles are a manual bootstrap boundary. Terraform does not create, update,
+attach, detach, or delete IAM roles or policies. Supply the ARNs of the
+manually managed `yinon-status-page-prod-ecs-execution` and
+`yinon-status-page-prod-ecs-task` roles through private variables.
+
 ## Environment isolation
 
 Development and production use the same Terraform code but must use separate

@@ -89,3 +89,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Scope:** the test creates two temporary ECR repositories and an ECS cluster. A Fargate task definition referencing the pushed local application image is optional and requires a project-scoped execution-role ARN. The test deliberately does not run a task or create network, IAM, data, or ingress resources.
 
 **Result:** both locally built images were pushed with immutable tag `smoke-3910843` and verified by digest in ECR. The tagged ECS cluster was active, and `terraform plan -detailed-exitcode` reported **No changes**, proving idempotency for the created resources. The initial Fargate task-definition registration correctly failed because a private ECR image requires an ECS execution role; the smoke configuration now makes that resource conditional on a project-scoped role ARN instead of reusing the generic legacy role. The destroy plan removed only the two temporary repositories (including images) and temporary ECS cluster; final read-only checks confirmed the repositories were absent and the cluster was `INACTIVE`.
+
+## 2026-08-29 — Manual IAM bootstrap boundary
+
+**Decision:** production ECS IAM roles are managed manually outside Terraform.
+
+**Implementation:** Terraform no longer declares IAM roles, role-policy attachments, inline role policies, or the GitHub OIDC publishing role. ECS task definitions consume `ecs_execution_role_arn` and `ecs_task_role_arn` inputs. The legacy `statuspage-dev` resources and temporary smoke role remain outside this change.
+
+**Constraint:** role creation and credentialed AWS plan/apply require the approved IAM identity and exact project secret ARNs. No AWS mutation was performed from this checkout because AWS credentials were unavailable.

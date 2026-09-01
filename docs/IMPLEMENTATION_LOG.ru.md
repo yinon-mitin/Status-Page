@@ -89,3 +89,11 @@
 **Scope:** test создаёт два временных ECR repositories и ECS cluster. Fargate task definition, ссылающаяся на pushed local application image, опциональна и требует project-scoped execution-role ARN. Test намеренно не запускает task и не создаёт network, IAM, data или ingress resources.
 
 **Результат:** оба локально собранных image были pushed с immutable tag `smoke-3910843` и проверены по digest в ECR. Tagged ECS cluster был active, а `terraform plan -detailed-exitcode` вернул **No changes**, что доказывает идемпотентность созданных ресурсов. Первая регистрация Fargate task definition корректно завершилась ошибкой: private ECR image требует ECS execution role. Поэтому в smoke configuration этот resource теперь условен и требует project-scoped role ARN, вместо переиспользования generic legacy role. Destroy plan удалил только два временных repository (включая images) и temporary ECS cluster; финальные read-only checks подтвердили отсутствие repositories и статус cluster `INACTIVE`.
+
+## 2026-08-29 — Ручная IAM bootstrap boundary
+
+**Решение:** production ECS IAM roles управляются вручную вне Terraform.
+
+**Реализация:** Terraform больше не объявляет IAM roles, role-policy attachments, inline policies или GitHub OIDC publishing role. ECS task definitions получают `ecs_execution_role_arn` и `ecs_task_role_arn` как входные значения. Legacy `statuspage-dev` resources и temporary smoke role остаются вне этого изменения.
+
+**Ограничение:** создание roles и credentialed AWS plan/apply требуют утверждённый IAM identity и точные secret ARNs проекта. Из этой рабочей копии AWS mutation не выполнялась, потому что credentials недоступны.

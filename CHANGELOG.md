@@ -6,6 +6,8 @@ All notable project changes are recorded here. This project follows the spirit o
 
 ### Changed
 
+- Moved production ECS IAM roles to the manually managed bootstrap boundary; Terraform now consumes explicit role ARNs and does not manage IAM roles or policies.
+
 - Excluded Git metadata from the Docker build context to keep local and CI image builds small and reproducible.
 - Excluded local Terraform caches, state, plans, and environment variable files from the Docker build context.
 - Added disabled-by-default VPC, public/internal subnet, route-table, and ALB/ECS security-group Terraform code for the next network phase.

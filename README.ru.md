@@ -31,6 +31,14 @@ make check
 
 Открой [http://localhost:8081](http://localhost:8081). Используй `make logs` для просмотра services и `make down` для остановки; добавляй `-v` к Docker Compose только при намеренном удалении локальных данных.
 
+### Граница IAM
+
+Production roles `yinon-status-page-prod-ecs-execution` и
+`yinon-status-page-prod-ecs-task` создаются и управляются вручную вне
+Terraform. Terraform только получает их ARNs через private variables. Legacy
+resources `statuspage-dev` и временная role
+`yinon-status-page-iam-smoke-20260828` не переиспользуются и не изменяются.
+
 ## Статус проекта
 
 | Направление | Статус | Подтверждение |
@@ -38,7 +46,7 @@ make check
 | Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
 | ECR | Применено | Immutable app/NGINX repositories, scan-on-push и lifecycle policies. |
 | ECS foundation | Применено | Cluster и CloudWatch log groups существуют; services выключены. |
-| ECS roles / task definitions | Заблокировано IAM | Текущий identity не имеет `iam:ListRolePolicies`. |
+| ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
 | Network Terraform | Код готов, не применён | Защищён `create_network = false`. |
 | ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |
 | Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |

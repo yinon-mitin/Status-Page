@@ -38,7 +38,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
 | ECR | Applied | Immutable app/NGINX repositories with scan-on-push and lifecycle policies. |
 | ECS foundation | Applied | Cluster and CloudWatch log groups exist; services remain disabled. |
-| ECS roles / task definitions | IAM-blocked | Current identity lacks `iam:ListRolePolicies`. |
+| ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
 | Network Terraform | Code complete, not applied | Guarded by `create_network = false`. |
 | ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
@@ -57,6 +57,15 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Terraform baseline | [README](https://github.com/yinon-mitin/Status-Page/blob/main/terraform/README.md) | — |
 
 See [CHANGELOG.md](CHANGELOG.md) for notable changes and [UPSTREAM.md](UPSTREAM.md) for source policy.
+
+### IAM boundary
+
+The production ECS roles `yinon-status-page-prod-ecs-execution` and
+`yinon-status-page-prod-ecs-task` are manually managed bootstrap resources.
+Terraform does not create, update, attach, detach, or delete IAM roles or
+policies; their ARNs are supplied through private Terraform variables. The
+legacy `statuspage-dev` resources and `yinon-status-page-iam-smoke-20260828`
+role are not reused or modified.
 
 ## Repository layout
 
