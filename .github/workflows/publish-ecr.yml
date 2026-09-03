@@ -13,16 +13,30 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'il-central-1' }}
   ECR_APP_REPOSITORY: ${{ vars.ECR_APP_REPOSITORY || 'statuspage-dev-app' }}
   ECR_NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY || 'statuspage-dev-nginx' }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'yinon-status-page-prod' }}
+  ECS_WEB_SERVICE: ${{ vars.ECS_WEB_SERVICE || 'web' }}
+  ECS_WORKER_SERVICE: ${{ vars.ECS_WORKER_SERVICE || 'worker' }}
+  ECS_SCHEDULER_SERVICE: ${{ vars.ECS_SCHEDULER_SERVICE || 'scheduler' }}
+  PUBLIC_HEALTHCHECK_URL: ${{ vars.PUBLIC_HEALTHCHECK_URL || 'http://status.yifilter.uk/healthz' }}
 
 jobs:
   publish:
     name: Build and publish immutable images
-    if: vars.AWS_ROLE_TO_ASSUME != ''
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Validate release configuration
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_TO_ASSUME" || {
+            echo "Repository Variable AWS_ROLE_TO_ASSUME is required." >&2
+            exit 1
+          }
 
       - name: Configure AWS credentials through GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -58,3 +72,94 @@ jobs:
           tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_NGINX_REPOSITORY }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-production:
+    name: Deploy immutable images to production
+    needs: publish
+    if: needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Validate deployment configuration
+        env:
+          AWS_DEPLOY_ROLE_TO_ASSUME: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_DEPLOY_ROLE_TO_ASSUME" || {
+            echo "Repository Variable AWS_DEPLOY_ROLE_TO_ASSUME is required." >&2
+            exit 1
+          }
+
+      - name: Configure deployment credentials through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: registry
+        name: Resolve ECR registry
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          echo "value=${account_id}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> "$GITHUB_OUTPUT"
+
+      - name: Register task definitions with this immutable image version
+        env:
+          APP_IMAGE: ${{ steps.registry.outputs.value }}/${{ env.ECR_APP_REPOSITORY }}:sha-${{ github.sha }}
+          NGINX_IMAGE: ${{ steps.registry.outputs.value }}/${{ env.ECR_NGINX_REPOSITORY }}:sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          deploy_service() {
+            local service="$1"
+            local update_nginx="$2"
+            local task_definition updated_definition task_arn
+
+            task_definition="$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$service" \
+              --query 'services[0].taskDefinition' \
+              --output text)"
+
+            updated_definition="$(aws ecs describe-task-definition \
+              --task-definition "$task_definition" \
+              --query taskDefinition \
+              --output json | jq \
+                --arg app_image "$APP_IMAGE" \
+                --arg nginx_image "$NGINX_IMAGE" \
+                --argjson update_nginx "$update_nginx" '
+                  del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                      .compatibilities, .registeredAt, .registeredBy,
+                      .deregisteredAt) |
+                  .containerDefinitions |= map(
+                    if .name == "app" then .image = $app_image
+                    elif .name == "nginx" and $update_nginx then .image = $nginx_image
+                    else . end
+                  )'))"
+
+            task_arn="$(aws ecs register-task-definition \
+              --cli-input-json "$updated_definition" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)"
+            aws ecs update-service \
+              --cluster "$ECS_CLUSTER" \
+              --service "$service" \
+              --task-definition "$task_arn" \
+              --force-new-deployment >/dev/null
+          }
+
+          deploy_service "$ECS_WEB_SERVICE" true
+          deploy_service "$ECS_WORKER_SERVICE" false
+          deploy_service "$ECS_SCHEDULER_SERVICE" false
+
+      - name: Wait for stable ECS services
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_WEB_SERVICE" "$ECS_WORKER_SERVICE" "$ECS_SCHEDULER_SERVICE"
+
+      - name: Verify public deployment health
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 6 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 "$PUBLIC_HEALTHCHECK_URL"

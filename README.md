@@ -39,7 +39,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Production ECS runtime | Live HTTP demonstration | Two web tasks, one worker, and one scheduler run privately on Fargate; ALB `/healthz` and homepage return HTTP 200. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
 | Network and data plane | Applied | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress, and least-privilege data-store ingress are live. |
-| ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
+| ECR publishing | Verified | GitHub OIDC published immutable `linux/amd64` images in run `33788559359`; ECR publishing and ECS deployment use distinct manually managed roles. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
 
@@ -50,6 +50,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | AWS architecture | [AWS architecture — English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.md) | [AWS architecture — Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.ru.md) |
 | Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
 | Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
+| Delivery evidence & release gates | [Evidence matrix and demonstration checklist](https://github.com/yinon-mitin/Status-Page/blob/main/docs/DELIVERY_EVIDENCE.md) | — |
 | Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
 | Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
 | Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |
@@ -87,5 +88,5 @@ statuspage/          Django source from upstream v2.5.1
 - No secret values are committed; runtime secrets are designed for Secrets Manager.
 - ALB is designed for public subnets; ECS tasks remain internal.
 - RDS is private (`publicly_accessible = false`) and accepts PostgreSQL traffic only from the ECS security group.
-- `status.yifilter.uk` is currently an HTTP-only demonstration endpoint. HTTPS remains blocked until the IAM identity can request and validate an ACM certificate; Cloudflare must remain DNS-only for that validation.
+- `status.yifilter.uk` is intentionally an HTTP-only demonstration endpoint. The AWS operator lacks ACM permissions, so the ALB has no HTTPS listener or redirect. This is not HTTPS production readiness. See [`docs/HTTPS_LIMITATION.md`](docs/HTTPS_LIMITATION.md) for the required access and the exact ACM/DNS recovery procedure.
 - This fork preserves the upstream [Apache-2.0 licence](LICENSE.txt), source history, and `upstream-v2.5.1` tag.

@@ -63,6 +63,9 @@ nav:
         - OrbStack development VM: 'ORBSTACK_DEV.md'
         - Architecture: 'ARCHITECTURE.md'
         - Architecture (русский): 'ARCHITECTURE.ru.md'
+        - Delivery evidence: DELIVERY_EVIDENCE.md
+        - HTTPS limitation: HTTPS_LIMITATION.md
+        - Ограничение HTTPS: HTTPS_LIMITATION.ru.md
         - Technology index: 'TECHNOLOGY_INDEX.md'
         - Technology index (русский): 'TECHNOLOGY_INDEX.ru.md'
         - Milestone audit: 'MILESTONE_AUDIT.md'
