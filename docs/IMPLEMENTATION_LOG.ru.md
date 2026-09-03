@@ -105,3 +105,11 @@
 **Реализация:** создан `yinon-status-page-tfstate-992382545251` с versioning, AES-256 default encryption, public-access block, BucketOwnerEnforced ownership, project tags и native S3 lockfiles. Terraform применил 11 новых `yinon-status-page-prod-*` resources: два immutable scan-on-push ECR repository и lifecycle policies, три CloudWatch log groups, ECS cluster и web/worker/scheduler task definitions с вручную созданными role ARNs.
 
 **Проверка:** apply вернул `11 added, 0 changed, 0 destroyed`; refreshed `terraform plan -detailed-exitcode` вернул `No changes`. IAM, legacy `statuspage-dev` и smoke resources не изменялись. ECS services остаются выключенными до review network, data layer, exact secrets, ALB и ACM.
+
+## 2026-09-03 — Применены network и private data plane; ACM заблокирован permission
+
+**Реализация:** применён reviewed production network/data plan `41 add / 0 change / 0 destroy`. Теперь live: VPC, public/internal/data subnets в `il-central-1a` и `il-central-1b`, public ALB, target group, endpoint security group, VPC endpoints для ECR API/Docker, CloudWatch Logs, Secrets Manager и S3, private PostgreSQL RDS и encrypted private Redis. NAT Gateway отсутствует.
+
+**Проверка:** RDS имеет статус `available`, `publicly_accessible=false`, two-day backups и AWS-managed master secret; Redis `available` с at-rest и transit encryption; ALB и все VPC endpoints active. Terraform state отслеживает успешные resources в isolated production S3 backend.
+
+**Блокер:** ACM certificate — единственный pending resource (`1 add / 0 change / 0 destroy`). Approved user получает deny для `acm:RequestCertificate`; listener, DNS validation CNAME, Cloudflare cutover и ECS service не выполнялись. Public hostname нельзя направлять на private address `10.42.0.1`.

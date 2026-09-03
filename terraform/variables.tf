@@ -126,6 +126,18 @@ variable "create_network" {
   default     = false
 }
 
+variable "create_data_plane" {
+  description = "Set true only after reviewing the VPC, ALB, RDS, ElastiCache, VPC endpoint, and recurring-cost plan. Requires create_network."
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Production hostname served by the public ALB after ACM DNS validation."
+  type        = string
+  default     = "status.yifilter.uk"
+}
+
 variable "vpc_cidr" {
   description = "CIDR for the Status-Page VPC."
   type        = string
@@ -156,5 +168,14 @@ variable "app_subnet_cidrs" {
   default = {
     a = "10.42.10.0/24"
     b = "10.42.11.0/24"
+  }
+}
+
+variable "data_subnet_cidrs" {
+  description = "Private data-subnet CIDRs for RDS and ElastiCache across the two active AZs."
+  type        = map(string)
+  default = {
+    a = "10.42.20.0/24"
+    b = "10.42.21.0/24"
   }
 }

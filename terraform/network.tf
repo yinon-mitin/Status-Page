@@ -32,6 +32,14 @@ resource "aws_subnet" "app" {
   tags              = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-app-${each.key}", Tier = "internal-app" })
 }
 
+resource "aws_subnet" "data" {
+  for_each          = var.create_network && var.create_data_plane ? var.availability_zones : {}
+  vpc_id            = aws_vpc.main[0].id
+  availability_zone = each.value
+  cidr_block        = var.data_subnet_cidrs[each.key]
+  tags              = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-data-${each.key}", Tier = "private-data" })
+}
+
 resource "aws_route_table" "public" {
   count  = var.create_network ? 1 : 0
   vpc_id = aws_vpc.main[0].id
@@ -60,6 +68,12 @@ resource "aws_route_table" "app" {
 
 resource "aws_route_table_association" "app" {
   for_each       = var.create_network ? aws_subnet.app : {}
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.app[0].id
+}
+
+resource "aws_route_table_association" "data" {
+  for_each       = var.create_network && var.create_data_plane ? aws_subnet.data : {}
   subnet_id      = each.value.id
   route_table_id = aws_route_table.app[0].id
 }

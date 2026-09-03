@@ -105,3 +105,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Implementation:** created `yinon-status-page-tfstate-992382545251` with versioning, AES-256 default encryption, public-access block, BucketOwnerEnforced ownership, project tags, and native S3 lockfiles. Terraform applied 11 new `yinon-status-page-prod-*` resources: two immutable scan-on-push ECR repositories and lifecycle policies, three CloudWatch log groups, an ECS cluster, and web/worker/scheduler task definitions using manually managed role ARNs.
 
 **Verification:** apply reported `11 added, 0 changed, 0 destroyed`; a refreshed `terraform plan -detailed-exitcode` reported `No changes`. No IAM, legacy `statuspage-dev`, or smoke resources were modified. ECS services remain disabled until network, data layer, exact secrets, ALB, and ACM are reviewed.
+
+## 2026-09-03 — Network and private data plane applied; ACM permission blocked
+
+**Implementation:** applied the reviewed `41 add / 0 change / 0 destroy` production network/data plan. The VPC, public/internal/data subnets in `il-central-1a` and `il-central-1b`, public ALB, target group, endpoint security group, ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3 VPC endpoints, private PostgreSQL RDS, and encrypted private Redis are now live. NAT Gateway remains absent.
+
+**Verification:** RDS is `available`, `publicly_accessible=false`, has two-day backups, and has an AWS-managed master secret; Redis is `available` with at-rest and transit encryption; the ALB and every VPC endpoint are active. Terraform state tracks the successful resources in the isolated production S3 backend.
+
+**Blocker:** ACM certificate creation is the sole pending resource (`1 add / 0 change / 0 destroy`). The approved user is denied `acm:RequestCertificate`; no listener, DNS validation CNAME, Cloudflare cutover, or ECS service was attempted. Do not point the public hostname to private address `10.42.0.1`.
