@@ -78,8 +78,20 @@ variable "create_services" {
   default     = false
 }
 
-variable "desired_count" {
-  description = "Initial desired count for each ECS service. Keep at one until durable media and worker-concurrency constraints are addressed."
+variable "web_desired_count" {
+  description = "Initial web service task count. Two tasks are placed across the internal application subnets."
+  type        = number
+  default     = 2
+}
+
+variable "worker_desired_count" {
+  description = "Initial RQ worker task count."
+  type        = number
+  default     = 1
+}
+
+variable "scheduler_desired_count" {
+  description = "Initial RQ scheduler task count."
   type        = number
   default     = 1
 }
@@ -136,6 +148,19 @@ variable "domain_name" {
   description = "Production hostname served by the public ALB after ACM DNS validation."
   type        = string
   default     = "status.yifilter.uk"
+}
+
+variable "request_acm_certificate" {
+  description = "Set true only when the approved identity has ACM RequestCertificate permission."
+  type        = bool
+  default     = false
+}
+
+variable "acm_certificate_arn" {
+  description = "Issued ACM certificate ARN used for the ALB HTTPS listener. Can be supplied after manual ACM issuance."
+  type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "vpc_cidr" {

@@ -113,3 +113,25 @@
 **Проверка:** RDS имеет статус `available`, `publicly_accessible=false`, two-day backups и AWS-managed master secret; Redis `available` с at-rest и transit encryption; ALB и все VPC endpoints active. Terraform state отслеживает успешные resources в isolated production S3 backend.
 
 **Блокер:** ACM certificate — единственный pending resource (`1 add / 0 change / 0 destroy`). Approved user получает deny для `acm:RequestCertificate`; listener, DNS validation CNAME, Cloudflare cutover и ECS service не выполнялись. Public hostname нельзя направлять на private address `10.42.0.1`.
+
+## 2026-09-03 — Production ECS services развернуты и проверены
+
+**Реализация:** собраны и pushed immutable `linux/amd64` app и NGINX images, поскольку начальные Apple-Silicon images не могли запускаться на ECS Fargate x86_64. Применён reviewed ECS service plan для двух private web task, одного worker и одного scheduler. Добавлено отсутствовавшее ALB security-group egress rule, ограниченное TCP/80 к ECS security group.
+
+**Проверка:** все четыре требуемые Fargate task достигли steady state; оба активных ALB IP target имеют статус healthy. `http://status.yifilter.uk/healthz` вернул `{"status":"ok"}`, homepage вернула HTTP 200. Worker завершал scheduled RQ jobs через private Redis, scheduler оставался running. Refreshed production Terraform plan вернул `No changes`.
+
+**Ограничение:** это HTTP-only demonstration endpoint. ACM issuance остаётся заблокированным permission, поэтому HTTPS production readiness не подтверждена. GitHub OIDC ECR publishing также намеренно выключен, пока не будет настроена отдельная manually managed role.
+
+## 2026-09-03 — Static assets включены в production NGINX image
+
+**Решение:** собирать frontend bundle внутри `Dockerfile.nginx` и копировать
+сгенерированный bundle вместе с project images в static root NGINX.
+
+**Почему:** Docker Compose разделяет volume со static files между application и
+NGINX, но ECS task намеренно не использует Docker volume. Поэтому прежний NGINX
+image возвращал 404 для CSS и JavaScript на public page: Django-страница была
+здоровой, но визуально выглядела как plain text.
+
+**Проверка:** свежая сборка NGINX отдала Tailwind stylesheet, основной
+stylesheet, JavaScript bundle и favicon с HTTP 200 из container без mounted
+volume. Перед production rollout прошёл `make verify`.

@@ -1,5 +1,20 @@
+FROM node:20-bookworm-slim AS frontend
+
+WORKDIR /opt/status-page/statuspage/project-static
+
+COPY statuspage/project-static/package.json statuspage/project-static/yarn.lock statuspage/project-static/.yarnrc.yml ./
+
+RUN corepack enable \
+    && yarn install --immutable
+
+COPY statuspage/project-static ./
+RUN yarn bundle \
+    && yarn bundle:styles
+
 FROM nginx:1.27-alpine
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend /opt/status-page/statuspage/project-static/dist /srv/status-page/static
+COPY statuspage/project-static/img /srv/status-page/static
 
 EXPOSE 80

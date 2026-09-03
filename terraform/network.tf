@@ -121,6 +121,15 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   to_port                      = 80
 }
 
+resource "aws_vpc_security_group_egress_rule" "alb_to_ecs" {
+  count                        = var.create_network ? 1 : 0
+  security_group_id            = aws_security_group.alb[0].id
+  referenced_security_group_id = aws_security_group.ecs[0].id
+  from_port                    = 80
+  ip_protocol                  = "tcp"
+  to_port                      = 80
+}
+
 # Egress remains open temporarily so future private RDS/Redis security groups
 # can enforce the receiving-side least-privilege policy. This is tightened when
 # the data layer is introduced.

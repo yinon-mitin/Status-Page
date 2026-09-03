@@ -19,6 +19,8 @@ logs:
 check:
 	docker compose config --quiet
 	curl --fail --silent --show-error http://localhost:8081/healthz
+	curl --fail --silent --show-error http://localhost:8081/static/statuspage-tailwind.css > /dev/null
+	curl --fail --silent --show-error http://localhost:8081/static/statuspage.css > /dev/null
 	docker compose exec -T web python manage.py check
 	docker compose exec -T web python /opt/status-page/scripts/verify_runtime.py
 

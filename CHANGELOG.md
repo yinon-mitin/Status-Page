@@ -6,6 +6,12 @@ All notable project changes are recorded here. This project follows the spirit o
 
 ### Changed
 
+- Fixed production static-asset delivery: the standalone NGINX image now builds
+  and contains the frontend bundle and project images. ECS does not share the
+  Docker Compose static-files volume, so without this change the public page
+  could render as unstyled plain text even while `/healthz` was healthy.
+- Pinned GitHub ECR publishing to `linux/amd64`, matching ECS Fargate's x86_64 runtime.
+- Added explicit ALB-to-ECS TCP/80 egress so ALB health probes can reach private Fargate targets.
 - Moved production ECS IAM roles to the manually managed bootstrap boundary; Terraform now consumes explicit role ARNs and does not manage IAM roles or policies.
 
 - Excluded Git metadata from the Docker build context to keep local and CI image builds small and reproducible.
@@ -16,6 +22,8 @@ All notable project changes are recorded here. This project follows the spirit o
 
 ### Added
 
+- Deployed the private production ECS services: two web tasks across the application subnets, one RQ worker, and one RQ scheduler. The public HTTP ALB health endpoint and homepage returned HTTP 200 after rollout.
+- Published immutable `linux/amd64` application and NGINX images to the production ECR repositories after the initial local ARM64 image mismatch was diagnosed.
 - Applied production VPC, public/internal/data subnets, public ALB, VPC endpoints, private RDS PostgreSQL, and encrypted private Redis; ACM remains separately permission-gated.
 - Isolated production Terraform S3 state bucket with versioning, AES-256 encryption, public-access block, ownership enforcement, and native S3 lockfiles.
 - Production `yinon-status-page-prod-*` ECR/ECS/CloudWatch foundation: immutable scan-on-push repositories, lifecycle policies, ECS cluster, log groups, and task definitions.

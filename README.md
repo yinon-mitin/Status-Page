@@ -36,9 +36,9 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| Production foundation | Applied | Isolated S3 state, ECR app/NGINX repositories, CloudWatch log groups, ECS cluster, and task definitions exist; services remain disabled. |
+| Production ECS runtime | Live HTTP demonstration | Two web tasks, one worker, and one scheduler run privately on Fargate; ALB `/healthz` and homepage return HTTP 200. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
-| Network Terraform | Code complete, not applied | Guarded by `create_network = false`. |
+| Network and data plane | Applied | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress, and least-privilege data-store ingress are live. |
 | ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
@@ -68,7 +68,7 @@ role are not reused or modified.
 
 Production Terraform state is isolated in an encrypted, versioned, public-blocked
 S3 bucket with native S3 lockfiles. The public DNS record for `status.yifilter.uk`
-must point to the future ALB DNS name; `10.42.0.0/16` is private VPC address space
+points to the ALB DNS name; `10.42.0.0/16` is private VPC address space
 and must not be used as a public DNS target.
 
 ## Repository layout
@@ -87,5 +87,5 @@ statuspage/          Django source from upstream v2.5.1
 - No secret values are committed; runtime secrets are designed for Secrets Manager.
 - ALB is designed for public subnets; ECS tasks remain internal.
 - RDS is private (`publicly_accessible = false`) and accepts PostgreSQL traffic only from the ECS security group.
-- Production HTTPS will use `status.yifilter.uk` with Cloudflare DNS only and an ACM certificate on the ALB.
+- `status.yifilter.uk` is currently an HTTP-only demonstration endpoint. HTTPS remains blocked until the IAM identity can request and validate an ACM certificate; Cloudflare must remain DNS-only for that validation.
 - This fork preserves the upstream [Apache-2.0 licence](LICENSE.txt), source history, and `upstream-v2.5.1` tag.

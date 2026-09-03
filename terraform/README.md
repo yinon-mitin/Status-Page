@@ -1,8 +1,8 @@
 # Thursday Terraform baseline
 
-This directory implements the agreed Thursday milestone: immutable ECR repositories and an ECS Fargate runtime baseline for the Status-Page web, RQ worker, and RQ scheduler processes.
+This directory implements immutable ECR repositories and the production ECS Fargate runtime for the Status-Page web, RQ worker, and RQ scheduler processes.
 
-It intentionally does **not** apply infrastructure automatically. The VPC, public ALB subnets, internal application subnets, ECS security group, ALB target group, RDS PostgreSQL, ElastiCache Redis, and Secrets Manager values must be created and reviewed first. The ECS services are disabled by default with `create_services = false`.
+It never applies infrastructure automatically. Production is enabled only by the private, ignored `prod.tfvars`, after an explicit reviewed plan. The public ALB, private application/data subnets, RDS PostgreSQL, ElastiCache Redis, Secrets Manager inputs, and ECS services have been applied to the isolated production state.
 
 ## What `terraform apply` creates now
 
@@ -17,11 +17,11 @@ Set `create_services = true` only after supplying private application subnets, t
 
 ## Network foundation
 
-`network.tf` implements the approved topology but is disabled by default with `create_network = false`: a VPC, public subnets in `il-central-1a` and `il-central-1b` for the internet-facing ALB, and internal application subnets in the same AZs for ECS. The ALB security group accepts public HTTP/HTTPS; the ECS security group accepts HTTP only from the ALB security group. Internal ECS subnets have no public IP assignment or direct Internet route.
+`network.tf` implements the approved topology but is disabled by default with `create_network = false`: a VPC, public subnets in `il-central-1a` and `il-central-1b` for the internet-facing ALB, and internal application subnets in the same AZs for ECS. The ALB security group accepts public HTTP/HTTPS and has TCP/80 egress only to the ECS security group; the ECS security group accepts HTTP only from the ALB security group. Internal ECS subnets have no public IP assignment or direct Internet route.
 
 The approved baseline uses `il-central-1a` and `il-central-1b`; `il-central-1c` is reserved for future expansion. ECS runs two web tasks across the two application subnets, while worker and scheduler each start at one task. Private task egress uses VPC endpoints for ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3. NAT Gateway is an optional, disabled-by-default path only for application features that need arbitrary public HTTPS egress.
 
-RDS must be created with `publicly_accessible = false`, a private DB subnet group, ECS-SG-only ingress on 5432, encryption, and two-day automated backup retention. Cloudflare hosts DNS for `status.yifilter.uk` in DNS-only mode; ACM validation and the application CNAME records are added in Cloudflare after Terraform exposes their values.
+RDS must be created with `publicly_accessible = false`, a private DB subnet group, ECS-SG-only ingress on 5432, encryption, and two-day automated backup retention. Cloudflare hosts DNS for `status.yifilter.uk` in DNS-only mode. The live endpoint is temporary HTTP only because ACM certificate issuance is permission-blocked; do not treat it as HTTPS production readiness.
 
 ## Safe first use
 

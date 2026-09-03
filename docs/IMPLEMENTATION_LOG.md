@@ -113,3 +113,25 @@ This log explains why project changes were made, what was verified, and any rema
 **Verification:** RDS is `available`, `publicly_accessible=false`, has two-day backups, and has an AWS-managed master secret; Redis is `available` with at-rest and transit encryption; the ALB and every VPC endpoint are active. Terraform state tracks the successful resources in the isolated production S3 backend.
 
 **Blocker:** ACM certificate creation is the sole pending resource (`1 add / 0 change / 0 destroy`). The approved user is denied `acm:RequestCertificate`; no listener, DNS validation CNAME, Cloudflare cutover, or ECS service was attempted. Do not point the public hostname to private address `10.42.0.1`.
+
+## 2026-09-03 — Production ECS services deployed and verified
+
+**Implementation:** built and pushed immutable `linux/amd64` app and NGINX images because the initial Apple-Silicon images could not run on ECS Fargate x86_64. Applied the reviewed ECS service plan for two private web tasks, one worker, and one scheduler. Added the missing ALB security-group egress rule restricted to TCP/80 toward the ECS security group.
+
+**Verification:** all four desired Fargate tasks reached steady state; both active ALB IP targets are healthy. `http://status.yifilter.uk/healthz` returned `{"status":"ok"}` and the homepage returned HTTP 200. The worker completed scheduled RQ jobs against private Redis and the scheduler stayed running. A refreshed production Terraform plan returned `No changes`.
+
+**Constraint:** this is an HTTP-only demonstration endpoint. ACM issuance remains permission-blocked, so it is not HTTPS production readiness. GitHub OIDC ECR publishing also remains intentionally disabled until its separate manually managed role is configured.
+
+## 2026-09-03 — Production static assets embedded in NGINX image
+
+**Decision:** build the frontend bundle inside `Dockerfile.nginx` and copy both
+the generated bundle and project images into the NGINX static root.
+
+**Why:** Docker Compose shares a static-files volume between the application and
+NGINX containers, but the ECS task intentionally has no Docker volume. The old
+NGINX image therefore returned 404 for CSS and JavaScript on the public page,
+making an otherwise healthy Django response look like plain text.
+
+**Verification:** a fresh NGINX build served the Tailwind stylesheet, main
+stylesheet, JavaScript bundle, and favicon with HTTP 200 from a container run
+without a mounted volume. `make verify` passed before the production rollout.

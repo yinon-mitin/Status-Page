@@ -40,8 +40,8 @@ resources `statuspage-dev` и временная role
 `yinon-status-page-iam-smoke-20260828` не переиспользуются и не изменяются.
 
 Production Terraform state изолирован в encrypted, versioned, public-blocked S3
-bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` должен
-указывать на будущий ALB DNS name: `10.42.0.0/16` — private VPC address space и
+bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` указывает
+на ALB DNS name: `10.42.0.0/16` — private VPC address space и
 не может быть public DNS target.
 
 ## Статус проекта
@@ -49,9 +49,9 @@ bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` долже
 | Направление | Статус | Подтверждение |
 | --- | --- | --- |
 | Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
-| Production foundation | Применено | Изолированный S3 state, ECR app/NGINX repositories, CloudWatch log groups, ECS cluster и task definitions существуют; services выключены. |
+| Production ECS runtime | Рабочая HTTP-демонстрация | Две web task, один worker и один scheduler работают private в Fargate; ALB `/healthz` и homepage возвращают HTTP 200. |
 | ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
-| Network Terraform | Код готов, не применён | Защищён `create_network = false`. |
+| Network и data plane | Применено | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress и least-privilege доступ к data stores работают. |
 | ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |
 | Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |
 | Качество Terraform | Готово | `fmt`, `validate` и recommended TFLint rules выполняются до cloud planning. |
@@ -86,5 +86,5 @@ statuspage/          Django source из upstream v2.5.1
 - Secret values не коммитятся; runtime secrets предназначены для Secrets Manager.
 - ALB рассчитан на public subnets; ECS tasks остаются internal.
 - RDS остаётся private (`publicly_accessible = false`) и принимает PostgreSQL traffic только от ECS security group.
-- Production HTTPS будет использовать `status.yifilter.uk` с Cloudflare DNS only и ACM certificate на ALB.
+- `status.yifilter.uk` сейчас является HTTP-only demonstration endpoint. HTTPS блокируется до выдачи и валидации ACM certificate; для неё Cloudflare должен оставаться DNS only.
 - Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.

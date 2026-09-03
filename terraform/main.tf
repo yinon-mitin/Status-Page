@@ -98,6 +98,10 @@ locals {
   environment = [for name, value in var.runtime_environment : { name = name, value = value }]
   secrets     = [for name, value_from in var.runtime_secret_arns : { name = name, valueFrom = value_from }]
 
+  service_subnet_ids        = var.create_data_plane ? values(aws_subnet.app)[*].id : var.app_private_subnet_ids
+  service_security_group_id = var.create_data_plane ? aws_security_group.ecs[0].id : var.ecs_security_group_id
+  service_target_group_arn  = var.create_data_plane ? aws_lb_target_group.web[0].arn : var.web_target_group_arn
+
   app_container = {
     name        = "app"
     image       = local.app_image
@@ -216,17 +220,18 @@ resource "aws_ecs_service" "web" {
   name            = "web"
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.web.arn
-  desired_count   = var.desired_count
+  desired_count   = var.web_desired_count
   launch_type     = "FARGATE"
+  tags            = local.resource_tags
 
   network_configuration {
-    subnets          = var.app_private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
+    subnets          = local.service_subnet_ids
+    security_groups  = [local.service_security_group_id]
     assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = var.web_target_group_arn
+    target_group_arn = local.service_target_group_arn
     container_name   = "nginx"
     container_port   = 80
   }
@@ -238,7 +243,7 @@ resource "aws_ecs_service" "web" {
 
   lifecycle {
     precondition {
-      condition     = length(var.app_private_subnet_ids) > 0 && var.ecs_security_group_id != null && var.web_target_group_arn != null
+      condition     = length(local.service_subnet_ids) > 0 && local.service_security_group_id != null && local.service_target_group_arn != null
       error_message = "Web service requires private application subnets, the ECS security group, and the ALB target group."
     }
 
@@ -254,12 +259,13 @@ resource "aws_ecs_service" "worker" {
   name            = "worker"
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.worker.arn
-  desired_count   = var.desired_count
+  desired_count   = var.worker_desired_count
   launch_type     = "FARGATE"
+  tags            = local.resource_tags
 
   network_configuration {
-    subnets          = var.app_private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
+    subnets          = local.service_subnet_ids
+    security_groups  = [local.service_security_group_id]
     assign_public_ip = false
   }
 }
@@ -269,12 +275,13 @@ resource "aws_ecs_service" "scheduler" {
   name            = "scheduler"
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.scheduler.arn
-  desired_count   = var.desired_count
+  desired_count   = var.scheduler_desired_count
   launch_type     = "FARGATE"
+  tags            = local.resource_tags
 
   network_configuration {
-    subnets          = var.app_private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
+    subnets          = local.service_subnet_ids
+    security_groups  = [local.service_security_group_id]
     assign_public_ip = false
   }
 }

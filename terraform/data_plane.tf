@@ -169,13 +169,39 @@ resource "aws_lb_target_group" "web" {
   tags = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-web" })
 }
 
-resource "aws_acm_certificate" "web" {
+resource "aws_lb_listener" "http" {
   count             = local.data_plane_enabled ? 1 : 0
+  load_balancer_arn = aws_lb.web[0].arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web[0].arn
+  }
+}
+
+resource "aws_acm_certificate" "web" {
+  count             = local.data_plane_enabled && var.request_acm_certificate ? 1 : 0
   domain_name       = var.domain_name
   validation_method = "DNS"
   tags              = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-certificate" })
 
   lifecycle {
     create_before_destroy = true
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count             = local.data_plane_enabled && var.acm_certificate_arn != null ? 1 : 0
+  load_balancer_arn = aws_lb.web[0].arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web[0].arn
   }
 }
