@@ -26,9 +26,9 @@ Private data plane: RDS PostgreSQL and ElastiCache Redis
 | CI | `Validate` and `Security scan` run for PRs and pushes to `dev` and `main`. | Main runs `33765216944` (Validate) and `33765216994` (Security scan) succeeded. | Verified on main |
 | Main branch flow | GitHub `main` requires a pull request, successful required checks, up-to-date branches, resolved conversations, linear history, and has direct pushes/force pushes blocked. | GitHub branch-protection rule is configured. | Configured |
 | Production approval | GitHub Environment `production` is configured with a required reviewer before the deploy job starts. | Workflow contains the gated deployment job. | Configured; runtime dependency below |
-| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | OIDC provider exists, but the role referenced by `AWS_ROLE_TO_ASSUME` is absent/mismatched; runs `33765998406` and `33766098797` failed at `sts:AssumeRoleWithWebIdentity`. | Blocked |
-| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME` so ECR publishing does not receive ECS deployment authority. | Role and GitHub Variable have not yet been created. The deploy job is intentionally skipped until they exist. | Blocked |
-| HTTPS | ACM termination is the target architecture. | Current public endpoint is HTTP-only because ACM permissions are unavailable. | Blocked |
+| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | Run `33788559359` successfully assumed the dedicated ECR publisher role and published both runtime images. | Verified |
+| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME` so ECR publishing does not receive ECS deployment authority. | The manually managed deployment role and `production` Environment gate exist. The first approved ECS deployment from `main` remains the release acceptance test. | Implemented; pending proof |
+| HTTPS | ACM termination is the target architecture. | Current public endpoint is intentionally HTTP-only because the operator lacks ACM permissions. The recovery procedure is documented in [`HTTPS_LIMITATION.md`](HTTPS_LIMITATION.md). | Blocked by access |
 
 ## Release procedure
 
@@ -66,7 +66,7 @@ For a presentation, show these live screens or command outputs:
 
 1. GitHub **Settings → Branches → main**: pull-request-only rule and required checks.
 2. GitHub **Settings → Environments → production**: required reviewer rule.
-3. GitHub **Actions**: successful `Validate` and `Security scan` runs; show the two OIDC failures as an honest current blocker until the manual role exists.
+3. GitHub **Actions**: retain the successful `Validate`, `Security scan`, and OIDC ECR-publish evidence; complete and record the first reviewer-approved deployment from `main`.
 4. AWS S3: versioning/encryption on the state bucket and the `prod` state key (do not reveal state contents).
 5. AWS ECS/ALB: desired/running counts and healthy targets.
 6. Production endpoint: `http://status.yifilter.uk/` and `/healthz`.
@@ -76,5 +76,5 @@ For a presentation, show these live screens or command outputs:
 
 - Local Docker Compose is a development environment; it is not a separately deployed cloud `dev` environment.
 - `dev` Terraform examples are configuration contracts, not proof of a deployed dev data plane.
-- Production ingress is not HTTPS-ready yet.
-- A workflow YAML file is not proof of OIDC or deployment until the relevant manually managed role exists and a real run succeeds.
+- Production ingress is not HTTPS-ready; it intentionally remains HTTP-only until the documented ACM recovery procedure is completed.
+- A workflow YAML file is not proof of deployment until the reviewer-approved `main` run completes an ECS rollout and public health check.

@@ -17,16 +17,26 @@ env:
   ECS_WEB_SERVICE: ${{ vars.ECS_WEB_SERVICE || 'web' }}
   ECS_WORKER_SERVICE: ${{ vars.ECS_WORKER_SERVICE || 'worker' }}
   ECS_SCHEDULER_SERVICE: ${{ vars.ECS_SCHEDULER_SERVICE || 'scheduler' }}
+  PUBLIC_HEALTHCHECK_URL: ${{ vars.PUBLIC_HEALTHCHECK_URL || 'http://status.yifilter.uk/healthz' }}
 
 jobs:
   publish:
     name: Build and publish immutable images
-    if: vars.AWS_ROLE_TO_ASSUME != ''
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Validate release configuration
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_TO_ASSUME" || {
+            echo "Repository Variable AWS_ROLE_TO_ASSUME is required." >&2
+            exit 1
+          }
 
       - name: Configure AWS credentials through GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -66,12 +76,22 @@ jobs:
   deploy-production:
     name: Deploy immutable images to production
     needs: publish
-    if: needs.publish.result == 'success' && vars.AWS_DEPLOY_ROLE_TO_ASSUME != ''
+    if: needs.publish.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: production
 
     steps:
+      - name: Validate deployment configuration
+        env:
+          AWS_DEPLOY_ROLE_TO_ASSUME: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_DEPLOY_ROLE_TO_ASSUME" || {
+            echo "Repository Variable AWS_DEPLOY_ROLE_TO_ASSUME is required." >&2
+            exit 1
+          }
+
       - name: Configure deployment credentials through GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -137,3 +157,9 @@ jobs:
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
             --services "$ECS_WEB_SERVICE" "$ECS_WORKER_SERVICE" "$ECS_SCHEDULER_SERVICE"
+
+      - name: Verify public deployment health
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 6 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 "$PUBLIC_HEALTHCHECK_URL"

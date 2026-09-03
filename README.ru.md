@@ -52,7 +52,7 @@ bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` указы
 | Production ECS runtime | Рабочая HTTP-демонстрация | Две web task, один worker и один scheduler работают private в Fargate; ALB `/healthz` и homepage возвращают HTTP 200. |
 | ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
 | Network и data plane | Применено | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress и least-privilege доступ к data stores работают. |
-| ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |
+| ECR publishing | Проверено | GitHub OIDC опубликовал immutable `linux/amd64` images в run `33788559359`; для ECR publishing и ECS deployment используются разные manually managed roles. |
 | Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |
 | Качество Terraform | Готово | `fmt`, `validate` и recommended TFLint rules выполняются до cloud planning. |
 
@@ -86,5 +86,5 @@ statuspage/          Django source из upstream v2.5.1
 - Secret values не коммитятся; runtime secrets предназначены для Secrets Manager.
 - ALB рассчитан на public subnets; ECS tasks остаются internal.
 - RDS остаётся private (`publicly_accessible = false`) и принимает PostgreSQL traffic только от ECS security group.
-- `status.yifilter.uk` сейчас является HTTP-only demonstration endpoint. HTTPS блокируется до выдачи и валидации ACM certificate; для неё Cloudflare должен оставаться DNS only.
+- `status.yifilter.uk` намеренно остаётся HTTP-only demonstration endpoint. У AWS operator нет ACM permissions, поэтому на ALB нет HTTPS listener или redirect. Это не HTTPS production readiness. Требуемый доступ и точная ACM/DNS procedure описаны в [`docs/HTTPS_LIMITATION.ru.md`](docs/HTTPS_LIMITATION.ru.md).
 - Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.
