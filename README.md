@@ -39,7 +39,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Production ECS runtime | Live HTTP demonstration | Two web tasks, one worker, and one scheduler run privately on Fargate; ALB `/healthz` and homepage return HTTP 200. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
 | Network and data plane | Applied | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress, and least-privilege data-store ingress are live. |
-| ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
+| ECR publishing | Blocked | The workflow is implemented, but its manually managed GitHub OIDC role is absent or mismatched. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
 
@@ -50,6 +50,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | AWS architecture | [AWS architecture — English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.md) | [AWS architecture — Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.ru.md) |
 | Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
 | Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
+| Delivery evidence & release gates | [Evidence matrix and demonstration checklist](https://github.com/yinon-mitin/Status-Page/blob/main/docs/DELIVERY_EVIDENCE.md) | — |
 | Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
 | Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
 | Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |

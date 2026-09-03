@@ -119,26 +119,32 @@
       r1d:'Docker Compose запускает весь source runtime, migrations, health checks и RQ smoke job.'
     });
     Object.assign(copy.en, {
+      c3:'The only public entry point. It currently serves HTTP on port 80 and runs health checks. HTTPS/ACM termination is pending missing ACM permissions.',
       c4:'Private RDS with no public endpoint. Port 5432 is allowed only from the ECS security group; backups are retained for two days.',
-      c8:'Runs required checks, then publishes and deploys automatically from protected main through GitHub OIDC.',
+      c8:'Runs required checks on pull requests and protected branches. ECR publishing and production deployment are approval-gated and await manually managed OIDC roles.',
       targetText:'Cloudflare DNS-only maps status.yifilter.uk to a public ALB in two public subnets. ECS stays internal, with two web tasks across two AZs. RDS and ElastiCache are private.',
       securityModelLead:'Only the ALB is public: Internet → ALB SG → ECS SG → private RDS/Redis SG. VPC endpoints provide required AWS-service egress without NAT.',
-      s1d:'Cloudflare DNS-only directs status.yifilter.uk to ALB. ALB accepts 80/443 in two public subnets; ACM terminates HTTPS.',
+      s1d:'Cloudflare DNS-only directs status.yifilter.uk to the ALB. The live endpoint currently accepts HTTP on port 80; ACM HTTPS termination remains pending.',
       s2d:'Two web tasks run across internal application subnets. Only ALB SG can contact web on port 80.',
       s3d:'Private RDS 5432 and Redis 6379 accept application traffic only from ECS SG. RDS backups are retained for two days.',
-      infraFlow:'Terraform format, validation, and TFLint → reviewed plan → protected production apply. State stays local during preparation; GitHub apply will use encrypted versioned S3 state with native lockfiles.',
+      appFlow:'Pull request checks → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability verification. The OIDC roles are still a manual prerequisite.',
+      infraFlow:'Terraform format, validation, and TFLint → reviewed plan → controlled production apply. Production state is encrypted/versioned S3 state with native lockfiles at yinon-status-page/prod/terraform.tfstate.',
+      roadmapLead:'Local Docker and the production AWS runtime are complete. Remaining delivery gates are manual OIDC roles, a successful CI publish/deploy run, and ACM HTTPS permissions.',
       r2d:'Terraform creates private network isolation, VPC endpoints, managed data services, secrets, logs, and cost controls.',
       r3d:'ECR and ECS run two web tasks across two AZs plus stable worker and scheduler services.'
     });
     Object.assign(copy.ru, {
+      c3:'Единственная public точка входа. Сейчас обслуживает HTTP на port 80 и выполняет health checks. HTTPS/ACM termination ожидает недостающих ACM permissions.',
       c4:'Private RDS без public endpoint. Port 5432 разрешён только от ECS security group; backups хранятся два дня.',
-      c8:'Запускает обязательные проверки, затем автоматически публикует и deploys из protected main через GitHub OIDC.',
+      c8:'Запускает обязательные проверки для pull request и protected branches. ECR publishing и production deployment требуют approval и ожидают вручную созданные OIDC roles.',
       targetText:'Cloudflare DNS-only связывает status.yifilter.uk с public ALB в двух public subnets. ECS остаётся internal: две web task в двух AZ. RDS и ElastiCache private.',
       securityModelLead:'Public остаётся только ALB: Internet → ALB SG → ECS SG → private RDS/Redis SG. VPC endpoints дают необходимый AWS-service egress без NAT.',
-      s1d:'Cloudflare DNS-only направляет status.yifilter.uk на ALB. ALB принимает 80/443 в двух public subnets; ACM завершает HTTPS.',
+      s1d:'Cloudflare DNS-only направляет status.yifilter.uk на ALB. Live endpoint сейчас принимает HTTP на port 80; ACM HTTPS termination ожидается.',
       s2d:'Две web task работают в internal application subnets. Только ALB SG может обращаться к web на port 80.',
       s3d:'Private RDS 5432 и Redis 6379 принимают application traffic только от ECS SG. RDS backups хранятся два дня.',
-      infraFlow:'Terraform format, validation и TFLint → reviewed plan → protected production apply. На этапе подготовки state локален; GitHub apply будет использовать encrypted versioned S3 state с native lockfiles.',
+      appFlow:'Проверки pull request → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability verification. OIDC roles всё ещё являются ручной предпосылкой.',
+      infraFlow:'Terraform format, validation и TFLint → reviewed plan → controlled production apply. Production state — encrypted/versioned S3 state с native lockfiles: yinon-status-page/prod/terraform.tfstate.',
+      roadmapLead:'Local Docker и production AWS runtime завершены. Оставшиеся delivery gates: ручные OIDC roles, успешный CI publish/deploy run и ACM HTTPS permissions.',
       r2d:'Terraform создаёт private network isolation, VPC endpoints, managed data services, secrets, logs и cost controls.',
       r3d:'ECR и ECS запускают две web task в двух AZ, а также stable worker и scheduler services.'
     });
