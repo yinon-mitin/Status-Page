@@ -39,13 +39,17 @@ Terraform. Terraform только получает их ARNs через private 
 resources `statuspage-dev` и временная role
 `yinon-status-page-iam-smoke-20260828` не переиспользуются и не изменяются.
 
+Production Terraform state изолирован в encrypted, versioned, public-blocked S3
+bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` должен
+указывать на будущий ALB DNS name: `10.42.0.0/16` — private VPC address space и
+не может быть public DNS target.
+
 ## Статус проекта
 
 | Направление | Статус | Подтверждение |
 | --- | --- | --- |
 | Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
-| ECR | Применено | Immutable app/NGINX repositories, scan-on-push и lifecycle policies. |
-| ECS foundation | Применено | Cluster и CloudWatch log groups существуют; services выключены. |
+| Production foundation | Применено | Изолированный S3 state, ECR app/NGINX repositories, CloudWatch log groups, ECS cluster и task definitions существуют; services выключены. |
 | ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
 | Network Terraform | Код готов, не применён | Защищён `create_network = false`. |
 | ECR publishing | Готово, но ожидает доступ | Запустится после настройки GitHub OIDC role. |

@@ -105,7 +105,7 @@ terraform/
 └── modules/{network,security-groups,ecr,alb,ecs,rds,redis,iam,secrets,monitoring}/
 ```
 
-В текущем single-operator baseline используется local state, пока инфраструктура подготавливается. До запуска Terraform `apply` из GitHub Actions state будет перенесён в encrypted versioned S3 backend с native S3 lockfiles (`use_lockfile = true`); DynamoDB locking намеренно не используется. Secrets нельзя помещать в `*.tfvars`.
+Production foundation использует изолированный encrypted versioned S3 backend с native S3 lockfiles (`use_lockfile = true`); DynamoDB locking намеренно не используется. Legacy state `statuspage-dev` остаётся отдельным. Secrets нельзя помещать в `*.tfvars`.
 
 ## Ограничения и roadmap
 

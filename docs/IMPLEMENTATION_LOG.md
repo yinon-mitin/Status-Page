@@ -97,3 +97,11 @@ This log explains why project changes were made, what was verified, and any rema
 **Implementation:** Terraform no longer declares IAM roles, role-policy attachments, inline role policies, or the GitHub OIDC publishing role. ECS task definitions consume `ecs_execution_role_arn` and `ecs_task_role_arn` inputs. The legacy `statuspage-dev` resources and temporary smoke role remain outside this change.
 
 **Constraint:** role creation and credentialed AWS plan/apply require the approved IAM identity and exact project secret ARNs. No AWS mutation was performed from this checkout because AWS credentials were unavailable.
+
+## 2026-09-01 — Isolated production foundation applied
+
+**Decision:** create production foundation in a dedicated S3 state object, separate from legacy `statuspage-dev` state.
+
+**Implementation:** created `yinon-status-page-tfstate-992382545251` with versioning, AES-256 default encryption, public-access block, BucketOwnerEnforced ownership, project tags, and native S3 lockfiles. Terraform applied 11 new `yinon-status-page-prod-*` resources: two immutable scan-on-push ECR repositories and lifecycle policies, three CloudWatch log groups, an ECS cluster, and web/worker/scheduler task definitions using manually managed role ARNs.
+
+**Verification:** apply reported `11 added, 0 changed, 0 destroyed`; a refreshed `terraform plan -detailed-exitcode` reported `No changes`. No IAM, legacy `statuspage-dev`, or smoke resources were modified. ECS services remain disabled until network, data layer, exact secrets, ALB, and ACM are reviewed.

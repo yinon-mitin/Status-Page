@@ -16,6 +16,8 @@ All notable project changes are recorded here. This project follows the spirit o
 
 ### Added
 
+- Isolated production Terraform S3 state bucket with versioning, AES-256 encryption, public-access block, ownership enforcement, and native S3 lockfiles.
+- Production `yinon-status-page-prod-*` ECR/ECS/CloudWatch foundation: immutable scan-on-push repositories, lifecycle policies, ECS cluster, log groups, and task definitions.
 - Project icon at `assets/statuspage-devops-icon.png`.
 - Makefile targets for local Compose and Terraform quality checks.
 - Full Docker Compose smoke test in GitHub Actions: health checks, NGINX HTTP, Django system check, and cleanup.

@@ -36,8 +36,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| ECR | Applied | Immutable app/NGINX repositories with scan-on-push and lifecycle policies. |
-| ECS foundation | Applied | Cluster and CloudWatch log groups exist; services remain disabled. |
+| Production foundation | Applied | Isolated S3 state, ECR app/NGINX repositories, CloudWatch log groups, ECS cluster, and task definitions exist; services remain disabled. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
 | Network Terraform | Code complete, not applied | Guarded by `create_network = false`. |
 | ECR publishing | Ready, gated | Runs after GitHub OIDC role configuration. |
@@ -66,6 +65,11 @@ Terraform does not create, update, attach, detach, or delete IAM roles or
 policies; their ARNs are supplied through private Terraform variables. The
 legacy `statuspage-dev` resources and `yinon-status-page-iam-smoke-20260828`
 role are not reused or modified.
+
+Production Terraform state is isolated in an encrypted, versioned, public-blocked
+S3 bucket with native S3 lockfiles. The public DNS record for `status.yifilter.uk`
+must point to the future ALB DNS name; `10.42.0.0/16` is private VPC address space
+and must not be used as a public DNS target.
 
 ## Repository layout
 

@@ -10,8 +10,7 @@ It intentionally does **not** apply infrastructure automatically. The VPC, publi
 - immutable SHA-tagged images, scan-on-push, and 30-image lifecycle policies;
 - an ECS cluster with Container Insights;
 - CloudWatch log groups for web, worker, and scheduler;
-- dedicated ECS task and execution roles; the execution role reads only the explicit Secrets Manager ARNs provided to Terraform;
-- an optional GitHub OIDC ECR-publishing role, scoped to `yinon-mitin/Status-Page` on `main` and only the two managed ECR repositories;
+- ECS task definitions that consume manually managed execution and task role ARNs;
 - three Fargate task definitions: web (app + NGINX sidecar), worker, and scheduler.
 
 Set `create_services = true` only after supplying private application subnets, the ECS security-group ID, web target-group ARN, non-secret runtime settings, and Secrets Manager ARNs for `STATUS_PAGE_SECRET_KEY` and `POSTGRES_PASSWORD`.
@@ -52,7 +51,9 @@ manually managed `yinon-status-page-prod-ecs-execution` and
 ## Environment isolation
 
 Development and production use the same Terraform code but must use separate
-state objects and variable files. Start with the checked-in examples:
+state objects and variable files. Production currently uses the encrypted,
+versioned S3 state object `yinon-status-page/prod/terraform.tfstate` in the
+manually bootstrapped state bucket. Start development with the checked-in examples:
 
 ```bash
 cp terraform/environments/dev.tfvars.example terraform/dev.tfvars
@@ -70,7 +71,9 @@ This account requires an `Owner` tag on taggable resources; the default value is
 
 ## GitHub Actions prerequisites
 
-Create the GitHub OIDC provider once at account level, set its ARN in `terraform.tfvars`, and apply. Then configure repository variables:
+GitHub OIDC and ECR publishing remain deferred until the network/data layer is
+stable. When manually bootstrapping a dedicated OIDC publishing role, configure
+repository variables:
 
 | Variable | Required value |
 | --- | --- |
