@@ -26,7 +26,33 @@ pause_on_error() {
 }
 trap pause_on_error ERR
 
-IMAGE_TAG="sha-$sha" CREATE_SERVICES=false "$ROOT/scripts/production_apply.sh"
+AWS_PROFILE="${AWS_PROFILE:-status-page}"
+AWS_REGION="${AWS_REGION:-il-central-1}"
+cluster_status="$(AWS_PROFILE="$AWS_PROFILE" aws ecs describe-clusters --region "$AWS_REGION" \
+  --clusters yinon-status-page-prod --query 'clusters[0].status' --output text)"
+existing_service_count=0
+bootstrap_create_services=false
+if [[ "$cluster_status" == "ACTIVE" ]]; then
+  service_arns="$(AWS_PROFILE="$AWS_PROFILE" aws ecs list-services --region "$AWS_REGION" \
+    --cluster yinon-status-page-prod --output json)"
+  existing_service_count="$(jq '.serviceArns | length' <<<"$service_arns")"
+  if [[ "$existing_service_count" == "3" ]]; then
+    actual_names="$(jq -r '.serviceArns[] | split("/")[-1]' <<<"$service_arns" | sort | tr '\n' ' ')"
+    [[ "$actual_names" == "scheduler web worker " ]] || {
+      echo "Refusing unexpected production ECS service set: $actual_names" >&2
+      exit 2
+    }
+    bootstrap_create_services=true
+  elif [[ "$existing_service_count" != "0" ]]; then
+    echo "Refusing partial ECS service set with $existing_service_count services." >&2
+    exit 2
+  fi
+elif [[ "$cluster_status" != "None" && "$cluster_status" != "INACTIVE" ]]; then
+  echo "Unexpected ECS cluster status: $cluster_status" >&2
+  exit 2
+fi
+
+IMAGE_TAG="sha-$sha" CREATE_SERVICES="$bootstrap_create_services" "$ROOT/scripts/production_apply.sh"
 alb_dns="$(AWS_PROFILE="${AWS_PROFILE:-status-page}" terraform -chdir="$ROOT/terraform" output -raw alb_dns_name)"
 python3 "$ROOT/scripts/update_cloudflare_dns.py" --target "$alb_dns" --if-configured
 gh variable set AWS_ACCOUNT_ID --repo "$REPOSITORY" --body 992382545251
