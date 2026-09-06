@@ -3,7 +3,9 @@
 
   const deck = document.getElementById('deck');
   const slides = Array.from(deck.querySelectorAll('.slide'));
-  const storageKey = 'status-page-presentation-slide';
+  const mainCount = slides.filter(slide => !slide.classList.contains('appendix-slide')).length;
+  const closingIndex = mainCount - 1;
+  const storageKey = 'status-page-presentation-slide-id';
   let current = 0;
   let touchStartX = null;
   let touchStartY = null;
@@ -17,7 +19,8 @@
     <button id="next-slide" type="button" aria-label="Next slide" title="Next (→ or Space)">→</button>
     <button id="notes-toggle" type="button" aria-label="Toggle presenter notes" aria-pressed="false" title="Presenter notes (N)">Notes</button>
     <button id="fullscreen-toggle" type="button" aria-label="Toggle fullscreen" title="Fullscreen (F)">Full</button>
-    <button id="help-toggle" type="button" aria-label="Keyboard help" title="Keyboard help (?)">?</button>`;
+    <button id="help-toggle" type="button" aria-label="Keyboard help" aria-expanded="false" title="Keyboard help (?)">?</button>
+    <button id="return-main" type="button" title="Return to Q&A (End)">Q&A</button>`;
 
   const progress = document.createElement('button');
   progress.id = 'progress';
@@ -32,6 +35,7 @@
   notesPanel.id = 'notes-panel';
   notesPanel.setAttribute('aria-label', 'Presenter notes');
   notesPanel.setAttribute('aria-hidden', 'true');
+  notesPanel.inert = true;
   notesPanel.innerHTML = `
     <header><div><span>Presenter notes</span><strong id="notes-title"></strong></div><button id="notes-close" type="button" aria-label="Close presenter notes">×</button></header>
     <div id="notes-content"></div>
@@ -42,14 +46,18 @@
   help.setAttribute('aria-label', 'Keyboard shortcuts');
   help.innerHTML = `
     <strong>Keyboard controls</strong>
-    <span><kbd>→</kbd> <kbd>Space</kbd> Next slide</span>
-    <span><kbd>←</kbd> Previous slide</span>
-    <span><kbd>Home</kbd> First slide</span>
-    <span><kbd>End</kbd> Last slide</span>
+    <span><kbd>→</kbd> <kbd>PageDown</kbd> Next slide</span>
+    <span><kbd>←</kbd> <kbd>PageUp</kbd> Previous slide</span>
+    <span><kbd>Space</kbd> Next / activate focused control</span>
+    <span><kbd>Home</kbd> First slide in section</span>
+    <span><kbd>End</kbd> Q&A / end main talk</span>
     <span><kbd>N</kbd> Presenter notes</span>
     <span><kbd>F</kbd> Fullscreen</span>
     <span><kbd>P</kbd> Print / PDF</span>
-    <span><kbd>?</kbd> This help</span>`;
+    <span><kbd>?</kbd> This help</span>
+    <span><kbd>Escape</kbd> Close overlays / return from appendix</span>
+    <small>Enter activates focused links and buttons. Fullscreen also exits with F or the browser’s Escape control.</small>
+    <button id="help-close" type="button">Close help</button>`;
 
   document.body.append(chrome, progress, sourceChip, notesPanel, help);
 
@@ -58,6 +66,7 @@
   const notesButton = document.getElementById('notes-toggle');
   const fullscreenButton = document.getElementById('fullscreen-toggle');
   const helpButton = document.getElementById('help-toggle');
+  const returnButton = document.getElementById('return-main');
   const notesClose = document.getElementById('notes-close');
   const counterCurrent = document.querySelector('#slide-counter span');
   const progressFill = progress.querySelector('span');
@@ -65,8 +74,14 @@
   const notesContent = document.getElementById('notes-content');
 
   function fitDeck() {
-    const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const notesOpen = document.body.classList.contains('notes-open');
+    const availableWidth = window.innerWidth - (notesOpen ? notesPanel.offsetWidth + 44 : 0);
+    const availableHeight = window.innerHeight - (notesOpen ? 80 : 0);
+    const scale = Math.min(availableWidth / 1920, availableHeight / 1080);
+    deck.style.left = `${availableWidth / 2}px`;
+    deck.style.top = `${availableHeight / 2}px`;
     deck.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    sourceChip.style.maxWidth = `${Math.max(0, chrome.getBoundingClientRect().left - 36)}px`;
   }
 
   function indexFromHash() {
@@ -77,8 +92,10 @@
   function initialIndex() {
     const hashIndex = indexFromHash();
     if (hashIndex >= 0) return hashIndex;
-    const saved = Number.parseInt(localStorage.getItem(storageKey), 10);
-    return Number.isInteger(saved) && saved >= 0 && saved < slides.length ? saved : 0;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return Math.max(0, slides.findIndex(slide => slide.id === saved));
+    } catch { return 0; } // file:// and privacy modes can deny storage.
   }
 
   function renderNotes(slide) {
@@ -95,6 +112,7 @@
     slides.forEach((slide, slideIndex) => {
       slide.classList.remove('active', 'enter-forward', 'enter-back');
       slide.setAttribute('aria-hidden', slideIndex === current ? 'false' : 'true');
+      slide.inert = slideIndex !== current;
     });
 
     const active = slides[current];
@@ -103,28 +121,42 @@
       active.classList.add(direction >= 0 ? 'enter-forward' : 'enter-back');
     }
 
-    counterCurrent.textContent = String(current + 1);
-    progressFill.style.width = `${((current + 1) / slides.length) * 100}%`;
-    prevButton.disabled = current === 0;
-    nextButton.disabled = current === slides.length - 1;
+    const { start, end } = sectionBounds();
+    const position = current - start + 1;
+    const count = end - start + 1;
+    counterCurrent.textContent = `${current >= mainCount ? 'A ' : ''}${position}`;
+    document.querySelector('#slide-counter b').textContent = String(count);
+    progressFill.style.width = `${(position / count) * 100}%`;
+    progress.setAttribute('aria-label', `${current >= mainCount ? 'Appendix' : 'Main talk'}: slide ${position} of ${count}. Click to jump; Space to advance.`);
+    prevButton.disabled = current === start;
+    nextButton.disabled = current === end;
+    returnButton.hidden = current < mainCount;
     sourceChip.textContent = `Source: ${active.dataset.source || 'repository source'}`;
-    document.title = `${current + 1}/${slides.length} · ${active.dataset.title} — Status-Page on AWS`;
-    localStorage.setItem(storageKey, String(current));
+    document.title = `${current >= mainCount ? 'Appendix ' : ''}${position}/${count} · ${active.dataset.title} — Status-Page on AWS`;
+    try { localStorage.setItem(storageKey, active.id); } catch { /* Optional persistence. */ }
     renderNotes(active);
+    fitDeck();
 
     if (updateHash) {
       history.replaceState(null, '', `#${active.id}`);
     }
   }
 
-  function next() { show(current + 1, 1); }
-  function previous() { show(current - 1, -1); }
+  function sectionBounds() {
+    return current < mainCount ? { start: 0, end: closingIndex } : { start: mainCount, end: slides.length - 1 };
+  }
+  function next() { show(Math.min(current + 1, sectionBounds().end), 1); }
+  function previous() { show(Math.max(current - 1, sectionBounds().start), -1); }
+  function returnToMain() { show(closingIndex, -1); }
 
   function toggleNotes(force) {
     const open = typeof force === 'boolean' ? force : !document.body.classList.contains('notes-open');
     document.body.classList.toggle('notes-open', open);
     notesPanel.setAttribute('aria-hidden', String(!open));
+    notesPanel.inert = !open;
     notesButton.setAttribute('aria-pressed', String(open));
+    if (!open && notesPanel.contains(document.activeElement)) notesButton.focus({ preventScroll: true });
+    fitDeck();
   }
 
   async function toggleFullscreen() {
@@ -142,6 +174,8 @@
   function toggleHelp(force) {
     const open = typeof force === 'boolean' ? force : !help.classList.contains('visible');
     help.classList.toggle('visible', open);
+    helpButton.setAttribute('aria-expanded', String(open));
+    if (!open && help.contains(document.activeElement)) helpButton.focus({ preventScroll: true });
   }
 
   prevButton.addEventListener('click', previous);
@@ -150,11 +184,21 @@
   notesClose.addEventListener('click', () => toggleNotes(false));
   fullscreenButton.addEventListener('click', toggleFullscreen);
   helpButton.addEventListener('click', () => toggleHelp());
+  document.getElementById('help-close').addEventListener('click', () => {
+    toggleHelp(false);
+    helpButton.focus({ preventScroll: true });
+  });
+  returnButton.addEventListener('click', () => {
+    returnToMain();
+    helpButton.focus({ preventScroll: true });
+  });
 
   progress.addEventListener('click', (event) => {
+    if (event.detail === 0) { next(); return; }
     const rect = progress.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const target = Math.min(slides.length - 1, Math.floor(ratio * slides.length));
+    const { start, end } = sectionBounds();
+    const target = Math.min(end, start + Math.floor(ratio * (end - start + 1)));
     show(target, target >= current ? 1 : -1);
   });
 
@@ -167,7 +211,12 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.target.matches('input, textarea, select, button')) return;
+    if (event.ctrlKey || event.metaKey || event.altKey ||
+        event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    // Keep native activation (including Space/Enter on buttons); navigation keys
+    // and presenter shortcuts must still work after a control receives focus.
+    if ((event.key === ' ' || event.key === 'Enter') &&
+        event.target.closest('button, a, [role="button"]')) return;
     switch (event.key) {
       case 'ArrowRight':
       case 'PageDown':
@@ -177,9 +226,9 @@
       case 'PageUp':
         event.preventDefault(); previous(); break;
       case 'Home':
-        event.preventDefault(); show(0, -1); break;
+        event.preventDefault(); show(sectionBounds().start, -1); break;
       case 'End':
-        event.preventDefault(); show(slides.length - 1, 1); break;
+        event.preventDefault(); returnToMain(); break;
       case 'n':
       case 'N':
         toggleNotes(); break;
@@ -192,8 +241,10 @@
       case '?':
         toggleHelp(); break;
       case 'Escape':
-        toggleHelp(false);
-        if (!document.fullscreenElement) toggleNotes(false);
+        if (help.classList.contains('visible') || document.body.classList.contains('notes-open')) {
+          toggleHelp(false);
+          toggleNotes(false);
+        } else if (current >= mainCount && !document.fullscreenElement) returnToMain();
         break;
       default:
         break;
