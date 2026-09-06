@@ -412,12 +412,10 @@ resource "aws_cloudwatch_dashboard" "production" {
         properties = {
           title  = "ECS utilization"
           region = var.aws_region
-          metrics = flatten([
-            for name, service in local.monitored_ecs_services : [
-              ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.this.name, "ServiceName", service.name, { label = "${name} CPU" }],
-              [".", "MemoryUtilization", ".", ".", ".", ".", { label = "${name} memory" }],
-            ]
-          ])
+          metrics = [
+            for pair in setproduct(sort(keys(local.monitored_ecs_services)), ["CPUUtilization", "MemoryUtilization"]) :
+            ["AWS/ECS", pair[1], "ClusterName", aws_ecs_cluster.this.name, "ServiceName", local.monitored_ecs_services[pair[0]].name, { label = "${pair[0]} ${lower(replace(pair[1], "Utilization", ""))}" }]
+          ]
           yAxis = { left = { min = 0, max = 100 } }
         }
       },
