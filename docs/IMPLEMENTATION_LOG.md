@@ -148,3 +148,21 @@ step before the final destroy.
 Redis, VPC, endpoints, services, task definitions, and log groups are absent.
 The versioned state bucket, manual IAM roles, external Django secret, and an
 available final RDS snapshot remain as explicit recovery boundaries.
+
+## 2026-09-06 — Automated create, approved release, and destroy rehearsed
+
+**Implementation:** added fail-closed JSON plan validation, two-stage production
+creation, independent image/deploy workflow inputs, a reviewer-only Environment
+job followed by branch-bound OIDC deployment, service rollback, unique final
+snapshot naming, and exact-family task-definition cleanup. Terraform derives
+recreated RDS/Redis endpoints and the RDS-managed password JSON key. IAM remains
+a one-time manual bootstrap boundary because the training account forbids IAM
+changes.
+
+**Verification:** revision `86d711d7c915d5efa66cb685a25964d7edf57a94`
+applied 54 foundation resources and 3 services. GitHub runs `34030885146` and
+`34031224217` proved image publishing, approval, deployer OIDC, stable web
+`2/2`, worker `1/1`, scheduler `1/1`, and ALB health. A no-change Terraform plan
+passed. The automated destroy validated and removed 57 resources, then verified
+empty state, absent runtime resources, no exact-family task definitions, and
+preserved state/IAM/secret/snapshot boundaries.

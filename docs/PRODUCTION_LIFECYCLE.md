@@ -94,3 +94,16 @@ A lifecycle is proven only when one exact revision has all of the following evid
 - destroy plan validation reports deletes only;
 - Terraform state is empty afterward; and
 - protected/manual boundaries still exist.
+
+## Verified rehearsal
+
+Revision `86d711d7c915d5efa66cb685a25964d7edf57a94` completed the full procedure:
+
+- image publication: GitHub run `34030885146`;
+- reviewer approval and deployer OIDC rollout: GitHub run `34031224217`;
+- stable services: web `2/2`, worker `1/1`, scheduler `1/1`;
+- provider health: two healthy ALB targets and successful `/healthz`;
+- idempotency: Terraform reported no changes before teardown;
+- destroy: 57 delete actions validated, applied, and followed by empty state and no exact-family task-definition revisions.
+
+The runtime is currently absent and `PRODUCTION_ENABLED=false`.

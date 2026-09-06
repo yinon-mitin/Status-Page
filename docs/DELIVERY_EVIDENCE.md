@@ -20,14 +20,14 @@ Private data plane: RDS PostgreSQL and ElastiCache Redis
 | Requirement | Implemented configuration | Current evidence | Status |
 | --- | --- | --- | --- |
 | Local development | Docker Compose runs web, NGINX, PostgreSQL, Redis, worker, and scheduler. | `make verify` was passed locally using OrbStack Docker. | Verified locally |
-| Production runtime | Separate `yinon-status-page-prod-*` ECS, ALB, RDS, Redis, ECR, and manually managed ECS roles in `il-central-1`. | The runtime was verified live, then safely destroyed; Terraform state currently has zero resources. | Historical live proof; currently paused |
+| Production runtime | Separate `yinon-status-page-prod-*` ECS, ALB, RDS, Redis, ECR, and manually managed ECS roles in `il-central-1`. | Revision `86d711d7c915d5efa66cb685a25964d7edf57a94`: create applied `54 + 3` resources; web `2/2`, worker `1/1`, scheduler `1/1`, two healthy ALB targets; destroy validated 57 deletes and returned empty state. | Automated live cycle verified; currently paused |
 | Terraform remote state | S3 backend with locking, encrypted/versioned bucket `yinon-status-page-tfstate-992382545251`. | Production state key remains available and empty after teardown. | Backend retained; runtime absent |
 | Environment separation | `environment` is validated as `dev` or `prod`; separate example contracts exist. | Production is paused. A cloud dev runtime has **not** been applied or verified and must use its own state key and resources. | Configuration verified; runtimes absent |
 | CI | `Validate` and `Security scan` run for PRs and pushes to `dev` and `main`. | Main runs `33765216944` (Validate) and `33765216994` (Security scan) succeeded. | Verified on main |
 | Main branch flow | GitHub `main` requires a pull request, successful required checks, up-to-date branches, resolved conversations, linear history, and has direct pushes/force pushes blocked. | GitHub branch-protection rule is configured. | Configured |
-| Production approval | GitHub Environment `production` is configured with a required reviewer before the deploy job starts. | Workflow contains the gated deployment job. | Configured; runtime dependency below |
-| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | Run `33788559359` successfully assumed the dedicated ECR publisher role and published both runtime images. | Verified |
-| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME`; approval and branch-bound OIDC are separate dependent jobs. | The previous environment-bound deploy failed before ECS. The revised path still requires a live approved rehearsal. | Implemented; pending new proof |
+| Production approval | GitHub Environment `production` is restricted to protected branches and requires a reviewer before its approval job completes. | Run `34031224217` stopped at, received, and enforced the approval before deploy. | Verified |
+| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | Run `34030885146` successfully assumed the dedicated publisher role and published both images for exact revision `86d711d`. | Verified |
+| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME`; approval and branch-bound OIDC are separate dependent jobs. | Run `34031224217` passed the `production` approval job, assumed the deployer role, updated all services, reached stability, and passed provider health. | Verified |
 | HTTPS | ACM termination is the target architecture. | No public runtime currently exists; ACM permissions remain unavailable. The recovery procedure is documented in [`HTTPS_LIMITATION.md`](HTTPS_LIMITATION.md). | Runtime absent; access blocked |
 
 ## Release procedure
@@ -43,6 +43,21 @@ Private data plane: RDS PostgreSQL and ElastiCache Redis
 No GitHub workflow may receive broad Terraform or production access merely to make deployment convenient. IAM roles and policies are a manual security boundary in this project.
 
 The executable create/release/destroy procedure and its safety checks are in [`PRODUCTION_LIFECYCLE.md`](PRODUCTION_LIFECYCLE.md).
+
+## Automated lifecycle rehearsal
+
+The live rehearsal for exact `main` revision
+`86d711d7c915d5efa66cb685a25964d7edf57a94` produced:
+
+- guarded foundation apply: 54 creates, zero changes, zero destroys;
+- OIDC image-only run [`34030885146`](https://github.com/yinon-mitin/Status-Page/actions/runs/34030885146), publishing both immutable `linux/amd64` images;
+- guarded service apply: 3 creates, zero changes, zero destroys;
+- ECS/ALB evidence: web `2/2`, worker `1/1`, scheduler `1/1`, two healthy targets, and HTTP 200 `/healthz`;
+- reviewed idempotency plan: no changes;
+- approved deploy-only run [`34031224217`](https://github.com/yinon-mitin/Status-Page/actions/runs/34031224217), including successful deployer OIDC and stable rollout; and
+- guarded destroy: 57 deletes only, followed by zero Terraform resources and zero active/inactive exact-family task definitions.
+
+ECR, ALB, RDS, Redis, and the production VPC were read back as absent. The versioned state bucket, four manual roles, protected legacy role, external Django secret, and available 20 GiB final RDS snapshot were preserved intentionally.
 
 ## Manual IAM prerequisite
 

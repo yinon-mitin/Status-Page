@@ -36,10 +36,10 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| Production ECS runtime | Paused after verified teardown | The Terraform-managed runtime is intentionally destroyed; remote state is empty and the retained recovery boundaries are documented. |
+| Production ECS runtime | Automated lifecycle verified; currently paused | Revision `86d711d` was recreated, deployed through approval/OIDC, health-checked, and fully destroyed; remote state is empty. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
-| Network and data plane | Reproducible, currently absent | Terraform defines the reviewed topology; `scripts/production_create.sh` and `scripts/production_destroy.sh` enforce scoped plans. |
-| ECR publishing | Verified | GitHub OIDC published immutable `linux/amd64` images in run `33788559359`; ECR publishing and ECS deployment use distinct manually managed roles. |
+| Network and data plane | Live cycle verified; currently absent | Guarded scripts applied 54 foundation resources plus 3 services, then validated and destroyed 57 resources. |
+| ECR publishing and ECS deployment | Verified | Image run `34030885146` and approved deploy run `34031224217` succeeded with distinct manually managed OIDC roles. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
 

@@ -19,6 +19,8 @@ export AWS_PROFILE AWS_REGION
 [[ -f "$TFVARS" ]] || { echo "Missing private tfvars: $TFVARS" >&2; exit 2; }
 account_id="$(aws --profile "$AWS_PROFILE" sts get-caller-identity --query Account --output text)"
 [[ "$account_id" == "$EXPECTED_ACCOUNT_ID" ]] || { echo "Refusing AWS account $account_id" >&2; exit 2; }
+command -v gh >/dev/null 2>&1 || { echo "gh is required to pause production before destroy." >&2; exit 2; }
+gh variable set PRODUCTION_ENABLED --repo "${GITHUB_REPOSITORY:-yinon-mitin/Status-Page}" --body false
 
 cleanup_task_definitions() {
   for family in \
@@ -61,9 +63,6 @@ terraform -chdir="$TF_DIR" init -reconfigure -input=false \
 state_resources="$(AWS_PROFILE="$AWS_PROFILE" terraform -chdir="$TF_DIR" state list)"
 if [[ -z "$state_resources" ]]; then
   cleanup_task_definitions
-  if command -v gh >/dev/null 2>&1; then
-    gh variable set PRODUCTION_ENABLED --repo "${GITHUB_REPOSITORY:-yinon-mitin/Status-Page}" --body false
-  fi
   echo "Production Terraform state is already empty; task-definition cleanup complete."
   exit 0
 fi
@@ -103,7 +102,4 @@ AWS_PROFILE="$AWS_PROFILE" terraform -chdir="$TF_DIR" apply -input=false "$destr
 remaining="$(AWS_PROFILE="$AWS_PROFILE" terraform -chdir="$TF_DIR" state list)"
 [[ -z "$remaining" ]] || { echo "Terraform state is not empty after destroy" >&2; printf '%s\n' "$remaining" >&2; exit 1; }
 cleanup_task_definitions
-if command -v gh >/dev/null 2>&1; then
-  gh variable set PRODUCTION_ENABLED --repo "${GITHUB_REPOSITORY:-yinon-mitin/Status-Page}" --body false
-fi
 echo "Destroy complete; final RDS snapshot: $snapshot_id"
