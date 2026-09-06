@@ -230,6 +230,20 @@ class TerraformLifecycleContractTests(unittest.TestCase):
         deploy = ROOT / "scripts" / "deploy_ecs_release.sh"
         self.assertTrue(deploy.stat().st_mode & stat.S_IXUSR, str(deploy))
 
+    def test_mutating_terraform_scripts_validate_the_exact_source_snapshot(self):
+        source_guard = ROOT / "scripts" / "validate_production_source.sh"
+        self.assertTrue(source_guard.is_file())
+        self.assertTrue(source_guard.stat().st_mode & stat.S_IXUSR, str(source_guard))
+        guard = source_guard.read_text()
+        self.assertIn("--untracked-files=all", guard)
+        self.assertIn("*.auto.tfvars", guard)
+        self.assertIn("origin/main", guard)
+        for relative in ("scripts/production_apply.sh", "scripts/production_destroy.sh"):
+            self.assertIn("validate_production_source.sh", (ROOT / relative).read_text())
+
+        create = (ROOT / "scripts" / "production_create.sh").read_text()
+        self.assertNotIn("--untracked-files=no", create)
+
     def test_create_sets_all_non_secret_release_identifiers(self):
         create = (ROOT / "scripts" / "production_create.sh").read_text()
         for variable in (
