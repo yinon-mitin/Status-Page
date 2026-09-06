@@ -33,6 +33,10 @@ ALLOWED_ADDRESS_PATTERNS = tuple(
     re.compile(pattern)
     for pattern in (
         r"^aws_cloudwatch_log_group\.(web|worker|scheduler)$",
+        r"^aws_cloudwatch_dashboard\.production\[0\]$",
+        r"^aws_cloudwatch_metric_alarm\.(alb_latency|alb_target_5xx|alb_unhealthy_hosts|rds_connections|rds_cpu|rds_free_storage|redis_cpu|redis_evictions|redis_memory)\[0\]$",
+        r'^aws_cloudwatch_metric_alarm\.(ecs_cpu|ecs_memory|ecs_running_tasks)\["(scheduler|web|worker)"\]$',
+        r"^aws_budgets_budget\.project\[0\]$",
         r"^aws_db_instance\.postgres\[0\]$",
         r"^aws_db_subnet_group\.postgres\[0\]$",
         r"^aws_ecr_lifecycle_policy\.(app|nginx)$",
@@ -50,6 +54,9 @@ ALLOWED_ADDRESS_PATTERNS = tuple(
         r"^aws_route_table\.(app|public)\[0\]$",
         r'^aws_route_table_association\.(app|data|public)\["[ab]"\]$',
         r"^aws_secretsmanager_secret_policy\.rds_master\[0\]$",
+        r"^aws_sns_topic\.alerts\[0\]$",
+        r"^aws_sns_topic_policy\.alerts\[0\]$",
+        r'^aws_sns_topic_subscription\.https_alerts\["https://[^"\s]+"\]$',
         r"^aws_security_group\.(alb|ecs|endpoints|rds|redis)\[0\]$",
         r'^aws_subnet\.(app|data|public)\["[ab]"\]$',
         r"^aws_vpc\.main\[0\]$",
@@ -63,6 +70,8 @@ ALLOWED_ADDRESS_PATTERNS = tuple(
 TAG_REQUIRED_TYPES = {
     "aws_acm_certificate",
     "aws_cloudwatch_log_group",
+    "aws_cloudwatch_metric_alarm",
+    "aws_budgets_budget",
     "aws_db_instance",
     "aws_db_subnet_group",
     "aws_ecr_repository",
@@ -76,6 +85,7 @@ TAG_REQUIRED_TYPES = {
     "aws_route_table",
     "aws_security_group",
     "aws_subnet",
+    "aws_sns_topic",
     "aws_vpc",
     "aws_vpc_endpoint",
 }

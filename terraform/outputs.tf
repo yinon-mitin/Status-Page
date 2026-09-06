@@ -18,6 +18,16 @@ output "alb_dns_name" {
   value       = var.create_data_plane ? aws_lb.web[0].dns_name : null
 }
 
+output "alert_topic_arn" {
+  description = "SNS topic used by CloudWatch alarms and the project Budget."
+  value       = var.enable_monitoring ? aws_sns_topic.alerts[0].arn : null
+}
+
+output "cloudwatch_dashboard_name" {
+  description = "Production CloudWatch dashboard name."
+  value       = local.data_plane_enabled && var.enable_monitoring ? aws_cloudwatch_dashboard.production[0].dashboard_name : null
+}
+
 
 output "network" {
   description = "Network IDs for the next ALB, ECS service, RDS, and Redis stages. Null until create_network is enabled."

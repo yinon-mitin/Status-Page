@@ -28,6 +28,7 @@ trap pause_on_error ERR
 
 IMAGE_TAG="sha-$sha" CREATE_SERVICES=false "$ROOT/scripts/production_apply.sh"
 alb_dns="$(AWS_PROFILE="${AWS_PROFILE:-status-page}" terraform -chdir="$ROOT/terraform" output -raw alb_dns_name)"
+python3 "$ROOT/scripts/update_cloudflare_dns.py" --target "$alb_dns" --if-configured
 gh variable set AWS_ACCOUNT_ID --repo "$REPOSITORY" --body 992382545251
 gh variable set AWS_REGION --repo "$REPOSITORY" --body il-central-1
 gh variable set ECR_APP_REPOSITORY --repo "$REPOSITORY" --body yinon-status-page-prod-app
@@ -52,8 +53,10 @@ done
 [[ -n "$run_id" ]] || { echo "Could not identify the bootstrap image workflow run." >&2; exit 1; }
 gh run watch "$run_id" --repo "$REPOSITORY" --exit-status
 
+CONFIRM_MIGRATION="$sha" IMAGE_TAG="sha-$sha" "$ROOT/scripts/run_migration_task.sh"
 IMAGE_TAG="sha-$sha" CREATE_SERVICES=true "$ROOT/scripts/production_apply.sh"
 "$ROOT/scripts/verify_production.sh"
+"$ROOT/scripts/verify_production_observability.sh"
 production_ready=true
 trap - ERR
 printf 'bootstrap_workflow_run=%s\n' "$run_id"

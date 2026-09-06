@@ -68,9 +68,8 @@ new_web="$(register_definition "$old_web" true)"
 new_worker="$(register_definition "$old_worker" false)"
 new_scheduler="$(register_definition "$old_scheduler" false)"
 
-# The training-account deployer cannot call ecs:RunTask. The web image's
-# start-web.sh runs `manage.py migrate --noinput` before Gunicorn, so service
-# stability remains the available migration gate. See PRODUCTION_LIFECYCLE.md.
+# The operator-run one-off task records exact-SHA migration evidence before this
+# workflow can start. Production web startup migrations are disabled in Terraform.
 rollback_started=true
 updated_services+=("$ECS_WEB_SERVICE")
 aws ecs update-service --region "$AWS_REGION" --cluster "$ECS_CLUSTER" \

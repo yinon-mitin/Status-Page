@@ -98,8 +98,9 @@ locals {
   nginx_image = coalesce(var.nginx_image_uri, "${aws_ecr_repository.nginx.repository_url}:${var.image_tag}")
 
   effective_environment = merge(var.runtime_environment, local.data_plane_enabled ? {
-    POSTGRES_HOST = aws_db_instance.postgres[0].address
-    REDIS_HOST    = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+    POSTGRES_HOST                       = aws_db_instance.postgres[0].address
+    REDIS_HOST                          = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+    STATUS_PAGE_RUN_MIGRATIONS_ON_START = "false"
     STATUS_PAGE_ALLOWED_HOSTS = join(",", [
       var.domain_name,
       aws_lb.web[0].dns_name,

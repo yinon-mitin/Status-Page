@@ -14,6 +14,29 @@ CREATE_SERVICES="${CREATE_SERVICES:-true}"
 IMAGE_TAG="${IMAGE_TAG:-sha-$(git -C "$ROOT" rev-parse origin/main)}"
 export AWS_PROFILE AWS_REGION
 
+INTEGRATIONS_FILE="${INTEGRATIONS_FILE:-$HOME/.config/status-page/integrations.env}"
+if [[ -f "$INTEGRATIONS_FILE" ]]; then
+  alert_endpoints="$(python3 - "$INTEGRATIONS_FILE" <<'PY'
+import json
+import os
+import stat
+import sys
+path = sys.argv[1]
+if stat.S_IMODE(os.stat(path).st_mode) & 0o077:
+    raise SystemExit(f"{path} must have mode 0600")
+url = ""
+with open(path, encoding="utf-8") as handle:
+    for raw_line in handle:
+        if raw_line.startswith("ALERT_RELAY_URL="):
+            url = raw_line.rstrip("\n").partition("=")[2]
+if url and not url.startswith("https://"):
+    raise SystemExit("ALERT_RELAY_URL must use HTTPS")
+print(json.dumps([url] if url else []))
+PY
+)"
+  export TF_VAR_alert_https_endpoints="$alert_endpoints"
+fi
+
 case "$CREATE_SERVICES" in true|false) ;; *) echo "CREATE_SERVICES must be true or false" >&2; exit 2 ;; esac
 [[ -f "$TFVARS" ]] || { echo "Missing private tfvars: $TFVARS" >&2; exit 2; }
 account_id="$(aws --profile "$AWS_PROFILE" sts get-caller-identity --query Account --output text)"

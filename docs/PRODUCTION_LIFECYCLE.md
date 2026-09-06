@@ -51,11 +51,20 @@ The command:
 
 1. applies the reviewed infrastructure with ECS services disabled;
 2. enables the release gate and dispatches an OIDC image-only build for exact `main`;
-3. applies ECS services using those immutable images;
-4. points the workflow health check at the generated ALB DNS name; and
-5. waits for all services and the provider-level `/healthz` probe.
+3. runs a private one-off migration task with the exact immutable application image;
+4. applies ECS services only after migration exit `0` and exact-SHA evidence;
+5. points the workflow health check at the generated ALB DNS name; and
+6. waits for all services and the provider-level `/healthz` probe.
 
-Cloudflare DNS remains an external manual boundary unless a narrowly scoped Cloudflare API token is provided. ALB DNS is sufficient for provider-level lifecycle verification.
+When narrowly scoped Cloudflare credentials are configured, creation updates only
+the DNS-only CNAME `status.yifilter.uk` to the generated ALB. Without credentials,
+the DNS step reports an explicit skip; ALB DNS remains sufficient for provider-level
+lifecycle verification.
+
+The one-off migration uses the operator identity because the immutable GitHub
+deployer role does not have `ecs:RunTask` or `ecs:DescribeTasks`. The path fails
+closed if those calls are unavailable; it does not silently return to concurrent
+web-startup migrations.
 
 ## Approved release
 
@@ -70,9 +79,14 @@ The GitHub Environment approval runs in its own job. The following deploy job ha
 
 GitHub Actions owns post-bootstrap service task-definition revisions. Terraform ignores only the `task_definition` attribute on existing services so a later infrastructure apply cannot silently roll a release back; Terraform still owns service creation, networking, scaling counts, and destruction. The destroy script deregisters and requests deletion of every exact production task-definition family revision created by either owner.
 
-### Training-account migration limitation
+### Training-account migration boundary
 
-The deployer role cannot call `ecs:RunTask`, and IAM cannot be changed. A separate one-off migration task is therefore impossible in this account. The available safe path is the existing web entrypoint: `docker/start-web.sh` runs `python manage.py migrate --noinput` before Gunicorn, and web must stabilize before worker/scheduler rollout. This remains weaker than a dedicated migration gate because two web tasks may enter Django migration startup concurrently. Image rollback does not reverse a schema migration, so production schema changes must remain backward-compatible; a real production account should grant narrowly scoped `ecs:RunTask`/`ecs:DescribeTasks` for a dedicated migration task family.
+The immutable GitHub deployer role cannot call `ecs:RunTask`, and IAM cannot be
+changed. The operator lifecycle therefore runs a separate private migration task
+with the approved AWS profile and records exact-SHA evidence before workflow
+dispatch. Terraform disables startup migrations for production web tasks; local
+Compose retains startup migrations by default. Image rollback still does not
+reverse a schema migration, so production migrations must remain backward-compatible.
 
 ## Destroy
 

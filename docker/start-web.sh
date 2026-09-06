@@ -1,7 +1,9 @@
 #!/bin/sh
 set -eu
 
-python manage.py migrate --noinput
+if [ "${STATUS_PAGE_RUN_MIGRATIONS_ON_START:-true}" = "true" ]; then
+    python manage.py migrate --noinput
+fi
 python manage.py collectstatic --noinput
 
 exec gunicorn \

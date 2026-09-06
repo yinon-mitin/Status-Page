@@ -12,6 +12,11 @@ owner       = "yinon"
 create_network    = true
 create_data_plane = true
 create_services   = true
+enable_monitoring = true
+
+# The non-secret relay URL is injected from the private integrations file by
+# production_apply.sh. Keep external receiver configuration out of source.
+alert_https_endpoints = []
 
 image_tag = "sha-REPLACE_WITH_GIT_SHA"
 
