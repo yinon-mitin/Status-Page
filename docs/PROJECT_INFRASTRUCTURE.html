@@ -119,7 +119,7 @@
       r1d:'Docker Compose запускает весь source runtime, migrations, health checks и RQ smoke job.'
     });
     Object.assign(copy.en, {
-      c3:'The only public entry point. It currently serves HTTP on port 80 and runs health checks. HTTPS/ACM termination is pending missing ACM permissions.',
+      c3:'The only public entry point when deployed. The current runtime is absent; HTTP port 80 is the tested demo path and HTTPS/ACM remains permission-blocked.',
       c4:'Private RDS with no public endpoint. Port 5432 is allowed only from the ECS security group; backups are retained for two days.',
       c8:'Runs required checks on pull requests and protected branches. ECR publishing through GitHub OIDC is verified; production deployment is approval-gated and performs ECS stability plus public health verification.',
       targetText:'Cloudflare DNS-only maps status.yifilter.uk to a public ALB in two public subnets. ECS stays internal, with two web tasks across two AZs. RDS and ElastiCache are private.',
@@ -129,12 +129,12 @@
       s3d:'Private RDS 5432 and Redis 6379 accept application traffic only from ECS SG. RDS backups are retained for two days.',
       appFlow:'Pull request checks → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability and public health verification. The narrowly scoped OIDC roles are manually managed.',
       infraFlow:'Terraform format, validation, and TFLint → reviewed plan → controlled production apply. Production state is encrypted/versioned S3 state with native lockfiles at yinon-status-page/prod/terraform.tfstate.',
-      roadmapLead:'Local Docker and the production AWS runtime are complete. The release gate requires a reviewer-approved main deployment; HTTPS remains intentionally blocked pending ACM permissions.',
-      r2d:'Terraform creates private network isolation, VPC endpoints, managed data services, secrets, logs, and cost controls.',
-      r3d:'ECR and ECS run two web tasks across two AZs plus stable worker and scheduler services.'
+      roadmapLead:'Local Docker is verified. The production AWS runtime is currently destroyed after a scoped teardown; guarded automation now recreates and removes it. HTTPS remains blocked pending ACM permissions.',
+      r2d:'Terraform defines private network isolation, VPC endpoints, managed data services, secret references, logs, and cost-conscious defaults.',
+      r3d:'When enabled, ECR and ECS run two web tasks across two AZs plus worker and scheduler services.'
     });
     Object.assign(copy.ru, {
-      c3:'Единственная public точка входа. Сейчас обслуживает HTTP на port 80 и выполняет health checks. HTTPS/ACM termination ожидает недостающих ACM permissions.',
+      c3:'Единственная public точка входа при deployment. Сейчас runtime отсутствует; HTTP port 80 — проверенный demo path, а HTTPS/ACM заблокирован permissions.',
       c4:'Private RDS без public endpoint. Port 5432 разрешён только от ECS security group; backups хранятся два дня.',
       c8:'Запускает обязательные проверки для pull request и protected branches. ECR publishing через GitHub OIDC проверен; production deployment требует approval, ECS stability и public health verification.',
       targetText:'Cloudflare DNS-only связывает status.yifilter.uk с public ALB в двух public subnets. ECS остаётся internal: две web task в двух AZ. RDS и ElastiCache private.',
@@ -144,9 +144,9 @@
       s3d:'Private RDS 5432 и Redis 6379 принимают application traffic только от ECS SG. RDS backups хранятся два дня.',
       appFlow:'Проверки pull request → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability и public health verification. Узкие OIDC roles управляются вручную.',
       infraFlow:'Terraform format, validation и TFLint → reviewed plan → controlled production apply. Production state — encrypted/versioned S3 state с native lockfiles: yinon-status-page/prod/terraform.tfstate.',
-      roadmapLead:'Local Docker и production AWS runtime завершены. Release gate требует reviewer-approved main deployment; HTTPS намеренно заблокирован до выдачи ACM permissions.',
-      r2d:'Terraform создаёт private network isolation, VPC endpoints, managed data services, secrets, logs и cost controls.',
-      r3d:'ECR и ECS запускают две web task в двух AZ, а также stable worker и scheduler services.'
+      roadmapLead:'Local Docker проверен. Production AWS runtime сейчас уничтожен после scoped teardown; guarded automation пересоздаёт и удаляет его. HTTPS заблокирован до выдачи ACM permissions.',
+      r2d:'Terraform описывает private network isolation, VPC endpoints, managed data services, secret references, logs и cost-conscious defaults.',
+      r3d:'При включении ECR и ECS запускают две web task в двух AZ, а также worker и scheduler services.'
     });
     function setLanguage(lang){document.documentElement.lang=lang;document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;if(copy[lang][key])el.textContent=copy[lang][key]});document.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));localStorage.setItem('yinon-language',lang)}
     document.querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>setLanguage(b.dataset.lang)));setLanguage(localStorage.getItem('yinon-language')||'en');

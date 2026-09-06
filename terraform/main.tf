@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "app" {
   name                 = "${var.project}-${var.environment}-app"
   image_tag_mutability = "IMMUTABLE"
+  force_delete         = var.teardown_mode
 
   image_scanning_configuration {
     scan_on_push = true
@@ -12,6 +13,7 @@ resource "aws_ecr_repository" "app" {
 resource "aws_ecr_repository" "nginx" {
   name                 = "${var.project}-${var.environment}-nginx"
   image_tag_mutability = "IMMUTABLE"
+  force_delete         = var.teardown_mode
 
   image_scanning_configuration {
     scan_on_push = true
@@ -95,8 +97,21 @@ locals {
   app_image   = coalesce(var.app_image_uri, "${aws_ecr_repository.app.repository_url}:${var.image_tag}")
   nginx_image = coalesce(var.nginx_image_uri, "${aws_ecr_repository.nginx.repository_url}:${var.image_tag}")
 
-  environment = [for name, value in var.runtime_environment : { name = name, value = value }]
-  secrets     = [for name, value_from in var.runtime_secret_arns : { name = name, valueFrom = value_from }]
+  effective_environment = merge(var.runtime_environment, local.data_plane_enabled ? {
+    POSTGRES_HOST = aws_db_instance.postgres[0].address
+    REDIS_HOST    = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+    STATUS_PAGE_ALLOWED_HOSTS = join(",", [
+      var.domain_name,
+      aws_lb.web[0].dns_name,
+      "localhost",
+      "127.0.0.1",
+    ])
+  } : {})
+  effective_secrets = merge(var.runtime_secret_arns, local.data_plane_enabled ? {
+    POSTGRES_PASSWORD = "${aws_db_instance.postgres[0].master_user_secret[0].secret_arn}:password::"
+  } : {})
+  environment = [for name, value in local.effective_environment : { name = name, value = value }]
+  secrets     = [for name, value_from in local.effective_secrets : { name = name, valueFrom = value_from }]
 
   service_subnet_ids        = var.create_data_plane ? values(aws_subnet.app)[*].id : var.app_private_subnet_ids
   service_security_group_id = var.create_data_plane ? aws_security_group.ecs[0].id : var.ecs_security_group_id
@@ -223,6 +238,7 @@ resource "aws_ecs_service" "web" {
   desired_count   = var.web_desired_count
   launch_type     = "FARGATE"
   tags            = local.resource_tags
+  depends_on      = [aws_secretsmanager_secret_policy.rds_master]
 
   network_configuration {
     subnets          = local.service_subnet_ids
@@ -242,13 +258,15 @@ resource "aws_ecs_service" "web" {
   }
 
   lifecycle {
+    ignore_changes = [task_definition]
+
     precondition {
       condition     = length(local.service_subnet_ids) > 0 && local.service_security_group_id != null && local.service_target_group_arn != null
       error_message = "Web service requires private application subnets, the ECS security group, and the ALB target group."
     }
 
     precondition {
-      condition     = contains(keys(var.runtime_secret_arns), "STATUS_PAGE_SECRET_KEY") && contains(keys(var.runtime_secret_arns), "POSTGRES_PASSWORD")
+      condition     = contains(keys(local.effective_secrets), "STATUS_PAGE_SECRET_KEY") && contains(keys(local.effective_secrets), "POSTGRES_PASSWORD")
       error_message = "Web service requires STATUS_PAGE_SECRET_KEY and POSTGRES_PASSWORD from Secrets Manager."
     }
   }
@@ -262,11 +280,16 @@ resource "aws_ecs_service" "worker" {
   desired_count   = var.worker_desired_count
   launch_type     = "FARGATE"
   tags            = local.resource_tags
+  depends_on      = [aws_secretsmanager_secret_policy.rds_master]
 
   network_configuration {
     subnets          = local.service_subnet_ids
     security_groups  = [local.service_security_group_id]
     assign_public_ip = false
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition]
   }
 }
 
@@ -278,10 +301,15 @@ resource "aws_ecs_service" "scheduler" {
   desired_count   = var.scheduler_desired_count
   launch_type     = "FARGATE"
   tags            = local.resource_tags
+  depends_on      = [aws_secretsmanager_secret_policy.rds_master]
 
   network_configuration {
     subnets          = local.service_subnet_ids
     security_groups  = [local.service_security_group_id]
     assign_public_ip = false
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition]
   }
 }

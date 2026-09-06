@@ -13,6 +13,11 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.this.name
 }
 
+output "alb_dns_name" {
+  description = "Public ALB DNS name used for provider-level health verification."
+  value       = var.create_data_plane ? aws_lb.web[0].dns_name : null
+}
+
 
 output "network" {
   description = "Network IDs for the next ALB, ECS service, RDS, and Redis stages. Null until create_network is enabled."

@@ -36,9 +36,9 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| Production ECS runtime | Live HTTP demonstration | Two web tasks, one worker, and one scheduler run privately on Fargate; ALB `/healthz` and homepage return HTTP 200. |
+| Production ECS runtime | Paused after verified teardown | The Terraform-managed runtime is intentionally destroyed; remote state is empty and the retained recovery boundaries are documented. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
-| Network and data plane | Applied | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress, and least-privilege data-store ingress are live. |
+| Network and data plane | Reproducible, currently absent | Terraform defines the reviewed topology; `scripts/production_create.sh` and `scripts/production_destroy.sh` enforce scoped plans. |
 | ECR publishing | Verified | GitHub OIDC published immutable `linux/amd64` images in run `33788559359`; ECR publishing and ECS deployment use distinct manually managed roles. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
@@ -51,6 +51,7 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
 | Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
 | Delivery evidence & release gates | [Evidence matrix and demonstration checklist](https://github.com/yinon-mitin/Status-Page/blob/main/docs/DELIVERY_EVIDENCE.md) | — |
+| Automated production lifecycle | [Create, release, verify, and destroy](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PRODUCTION_LIFECYCLE.md) | — |
 | Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
 | Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
 | Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |
@@ -68,9 +69,10 @@ legacy `statuspage-dev` resources and `yinon-status-page-iam-smoke-20260828`
 role are not reused or modified.
 
 Production Terraform state is isolated in an encrypted, versioned, public-blocked
-S3 bucket with native S3 lockfiles. The public DNS record for `status.yifilter.uk`
-points to the ALB DNS name; `10.42.0.0/16` is private VPC address space
-and must not be used as a public DNS target.
+S3 bucket with native S3 lockfiles. The state is currently empty after the
+reviewed teardown. The Cloudflare record must be updated after each ALB
+recreation; `10.42.0.0/16` is private VPC address space and must never be used
+as a public DNS target.
 
 ## Repository layout
 
@@ -88,5 +90,5 @@ statuspage/          Django source from upstream v2.5.1
 - No secret values are committed; runtime secrets are designed for Secrets Manager.
 - ALB is designed for public subnets; ECS tasks remain internal.
 - RDS is private (`publicly_accessible = false`) and accepts PostgreSQL traffic only from the ECS security group.
-- `status.yifilter.uk` is intentionally an HTTP-only demonstration endpoint. The AWS operator lacks ACM permissions, so the ALB has no HTTPS listener or redirect. This is not HTTPS production readiness. See [`docs/HTTPS_LIMITATION.md`](docs/HTTPS_LIMITATION.md) for the required access and the exact ACM/DNS recovery procedure.
+- When deployed, `status.yifilter.uk` is an HTTP-only demonstration endpoint. The runtime is currently destroyed, and the AWS operator still lacks ACM permissions. See [`docs/HTTPS_LIMITATION.md`](docs/HTTPS_LIMITATION.md).
 - This fork preserves the upstream [Apache-2.0 licence](LICENSE.txt), source history, and `upstream-v2.5.1` tag.

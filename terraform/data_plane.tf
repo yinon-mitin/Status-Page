@@ -85,9 +85,9 @@ resource "aws_db_instance" "postgres" {
   manage_master_user_password = true
   publicly_accessible         = false
   backup_retention_period     = 2
-  deletion_protection         = true
+  deletion_protection         = !var.teardown_mode
   skip_final_snapshot         = false
-  final_snapshot_identifier   = "${var.project}-${var.environment}-postgres-final"
+  final_snapshot_identifier   = coalesce(var.final_snapshot_identifier, "${var.project}-${var.environment}-postgres-final")
   multi_az                    = false
   db_subnet_group_name        = aws_db_subnet_group.postgres[0].name
   vpc_security_group_ids      = [aws_security_group.rds[0].id]
@@ -95,6 +95,29 @@ resource "aws_db_instance" "postgres" {
   copy_tags_to_snapshot       = true
   apply_immediately           = false
   tags                        = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-postgres" })
+
+  lifecycle {
+    precondition {
+      condition     = !var.teardown_mode || (var.final_snapshot_identifier != null && startswith(var.final_snapshot_identifier, "${var.project}-${var.environment}-postgres-final-"))
+      error_message = "teardown_mode requires a unique project-scoped final_snapshot_identifier."
+    }
+  }
+}
+
+resource "aws_secretsmanager_secret_policy" "rds_master" {
+  count               = local.data_plane_enabled && var.ecs_execution_role_arn != null ? 1 : 0
+  secret_arn          = aws_db_instance.postgres[0].master_user_secret[0].secret_arn
+  block_public_policy = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowOnlyProductionEcsExecutionRole"
+      Effect    = "Allow"
+      Principal = { AWS = var.ecs_execution_role_arn }
+      Action    = "secretsmanager:GetSecretValue"
+      Resource  = aws_db_instance.postgres[0].master_user_secret[0].secret_arn
+    }]
+  })
 }
 
 resource "aws_security_group" "redis" {
@@ -147,7 +170,7 @@ resource "aws_lb" "web" {
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.alb[0].id]
   subnets                    = values(aws_subnet.public)[*].id
-  enable_deletion_protection = true
+  enable_deletion_protection = !var.teardown_mode
   tags                       = merge(local.resource_tags, { Name = "${var.project}-${var.environment}-alb" })
 }
 

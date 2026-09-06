@@ -1,11 +1,11 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs check test docs verify vm-status vm-check vm-cloud-init-check tf-fmt tf-validate tf-lint
+.PHONY: help up down logs check test docs automation-check verify vm-status vm-check vm-cloud-init-check tf-fmt tf-validate tf-lint
 
 ORBSTACK_MACHINE ?= statuspage-dev
 
 help:
-	@printf '%s\n' 'Targets: up, down, logs, check, test, docs, verify, vm-status, vm-check, vm-cloud-init-check, tf-fmt, tf-validate, tf-lint'
+	@printf '%s\n' 'Targets: up, down, logs, check, test, docs, automation-check, verify, vm-status, vm-check, vm-cloud-init-check, tf-fmt, tf-validate, tf-lint'
 
 up:
 	docker compose up --build -d
@@ -30,7 +30,11 @@ test:
 docs:
 	docker compose run --rm --no-deps --workdir /opt/status-page web mkdocs build --strict
 
-verify: check test docs vm-cloud-init-check tf-fmt tf-validate tf-lint
+automation-check:
+	python3 -m unittest tests/test_delivery_automation.py -v
+	@for script in scripts/*.sh; do bash -n "$$script"; done
+
+verify: check test docs automation-check vm-cloud-init-check tf-fmt tf-validate tf-lint
 	@printf '%s\n' 'Local verification passed.'
 
 vm-status:
