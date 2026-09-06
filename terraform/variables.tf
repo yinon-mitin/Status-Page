@@ -113,9 +113,22 @@ variable "runtime_environment" {
 }
 
 variable "runtime_secret_arns" {
-  description = "Map of environment-variable names to Secrets Manager secret ARNs. For a service deployment, include STATUS_PAGE_SECRET_KEY and POSTGRES_PASSWORD at minimum."
+  description = "Map of externally managed environment-variable names to Secrets Manager secret ARNs. With the managed data plane, Terraform derives POSTGRES_PASSWORD from the RDS-managed secret."
   type        = map(string)
   default     = {}
+}
+
+variable "teardown_mode" {
+  description = "Temporarily disable deletion protection and allow ECR image deletion during the reviewed automated destroy workflow."
+  type        = bool
+  default     = false
+}
+
+variable "final_snapshot_identifier" {
+  description = "Unique RDS final snapshot identifier supplied by the automated destroy workflow."
+  type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "ecs_execution_role_arn" {

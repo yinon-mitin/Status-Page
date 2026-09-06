@@ -2,7 +2,9 @@
 
 ## Текущий статус
 
-`http://status.yifilter.uk/` намеренно остаётся **HTTP-only demonstration endpoint**. Это живой ECS/ALB deployment, но он **не готов к HTTPS production**. На ALB существует только HTTP listener; redirect HTTP→HTTPS не настроен.
+Terraform-managed ECS/ALB runtime сейчас уничтожен. При включении
+`http://status.yifilter.uk/` остаётся **HTTP-only demonstration endpoint**, а не
+HTTPS production. ACM certificate и HTTP-to-HTTPS redirect не реализованы.
 
 Причина — не дефект приложения или Terraform. У AWS identity, доступной проекту, нет ACM permissions, нужных для запроса и DNS validation public certificate. Зафиксированный отказ включает `acm-pca:ListCertificateAuthorities`; запрос сертификата также требует соответствующих ACM permissions для public certificate. Граница доступа не обходится, а certificate/private key не попадает в GitHub или Terraform state.
 

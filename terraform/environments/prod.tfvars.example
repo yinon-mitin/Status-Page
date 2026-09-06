@@ -7,9 +7,29 @@ project     = "yinon-status-page"
 environment = "prod"
 owner       = "yinon"
 
-# Production remains disabled until all external approvals and recovery gates
-# are complete.
-create_network  = false
-create_services = false
+# Enable the reviewed production topology. Runtime database and Redis endpoints,
+# and the RDS-managed password secret ARN, are derived by Terraform.
+create_network    = true
+create_data_plane = true
+create_services   = true
 
 image_tag = "sha-REPLACE_WITH_GIT_SHA"
+
+# IAM roles and the Django secret remain explicit manual bootstrap boundaries.
+ecs_execution_role_arn = "arn:aws:iam::REPLACE_WITH_ACCOUNT_ID:role/yinon-status-page-prod-ecs-execution"
+ecs_task_role_arn      = "arn:aws:iam::REPLACE_WITH_ACCOUNT_ID:role/yinon-status-page-prod-ecs-task"
+
+runtime_secret_arns = {
+  STATUS_PAGE_SECRET_KEY = "arn:aws:secretsmanager:il-central-1:REPLACE_WITH_ACCOUNT_ID:secret:yinon-status-page-prod-django-secret-REPLACE"
+}
+
+runtime_environment = {
+  POSTGRES_PORT                    = "5432"
+  POSTGRES_DB                      = "statuspage"
+  POSTGRES_USER                    = "statuspage"
+  REDIS_PORT                       = "6379"
+  REDIS_SSL                        = "true"
+  STATUS_PAGE_SITE_URL             = "http://status.yifilter.uk"
+  STATUS_PAGE_CSRF_TRUSTED_ORIGINS = "http://status.yifilter.uk"
+  STATUS_PAGE_TIME_ZONE            = "Asia/Jerusalem"
+}

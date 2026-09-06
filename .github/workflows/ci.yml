@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Check Docker Compose configuration
         run: docker compose config --quiet
@@ -43,8 +43,11 @@ jobs:
       - name: Validate OrbStack Cloud-Init contract
         run: docker compose -p statuspage-ci run --rm --no-deps --entrypoint python --workdir /opt/status-page web scripts/validate_cloud_init.py
 
+      - name: Validate production lifecycle automation contracts
+        run: make automation-check
+
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_wrapper: false
 
@@ -58,7 +61,7 @@ jobs:
         run: terraform -chdir=terraform validate
 
       - name: Install TFLint
-        uses: terraform-linters/setup-tflint@v5
+        uses: terraform-linters/setup-tflint@ae78205cfffec9e8d93fd2b3115c7e9d3166d4b6 # v5
 
       - name: Run Terraform static quality checks
         run: |

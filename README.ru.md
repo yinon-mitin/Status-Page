@@ -40,18 +40,18 @@ resources `statuspage-dev` и временная role
 `yinon-status-page-iam-smoke-20260828` не переиспользуются и не изменяются.
 
 Production Terraform state изолирован в encrypted, versioned, public-blocked S3
-bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` указывает
-на ALB DNS name: `10.42.0.0/16` — private VPC address space и
-не может быть public DNS target.
+bucket с native S3 lockfiles. После проверенного teardown state пуст. Cloudflare
+record нужно обновлять после каждого пересоздания ALB; `10.42.0.0/16` — private
+VPC address space и никогда не может быть public DNS target.
 
 ## Статус проекта
 
 | Направление | Статус | Подтверждение |
 | --- | --- | --- |
 | Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
-| Production ECS runtime | Рабочая HTTP-демонстрация | Две web task, один worker и один scheduler работают private в Fargate; ALB `/healthz` и homepage возвращают HTTP 200. |
+| Production ECS runtime | Приостановлен после проверенного teardown | Terraform-managed runtime намеренно уничтожен; remote state пуст, recovery boundaries сохранены. |
 | ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
-| Network и data plane | Применено | Public ALB, private ECS/RDS/Redis subnets, endpoint-only AWS egress и least-privilege доступ к data stores работают. |
+| Network и data plane | Воспроизводим, сейчас отсутствует | Terraform описывает topology; scripts автоматизируют проверенные create/destroy plans. |
 | ECR publishing | Проверено | GitHub OIDC опубликовал immutable `linux/amd64` images в run `33788559359`; для ECR publishing и ECS deployment используются разные manually managed roles. |
 | Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |
 | Качество Terraform | Готово | `fmt`, `validate` и recommended TFLint rules выполняются до cloud planning. |
@@ -63,6 +63,7 @@ bucket с native S3 lockfiles. Public DNS record `status.yifilter.uk` указы
 | AWS architecture | [AWS architecture — English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.md) | [AWS architecture — Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.ru.md) |
 | Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
 | Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
+| Automated production lifecycle | [Create, release, verify и destroy](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PRODUCTION_LIFECYCLE.md) | — |
 | Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
 | Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
 | Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |
@@ -86,5 +87,5 @@ statuspage/          Django source из upstream v2.5.1
 - Secret values не коммитятся; runtime secrets предназначены для Secrets Manager.
 - ALB рассчитан на public subnets; ECS tasks остаются internal.
 - RDS остаётся private (`publicly_accessible = false`) и принимает PostgreSQL traffic только от ECS security group.
-- `status.yifilter.uk` намеренно остаётся HTTP-only demonstration endpoint. У AWS operator нет ACM permissions, поэтому на ALB нет HTTPS listener или redirect. Это не HTTPS production readiness. Требуемый доступ и точная ACM/DNS procedure описаны в [`docs/HTTPS_LIMITATION.ru.md`](docs/HTTPS_LIMITATION.ru.md).
+- При активном runtime `status.yifilter.uk` остаётся HTTP-only demonstration endpoint. Сейчас runtime уничтожен, а ACM permissions по-прежнему отсутствуют. См. [`docs/HTTPS_LIMITATION.ru.md`](docs/HTTPS_LIMITATION.ru.md).
 - Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.

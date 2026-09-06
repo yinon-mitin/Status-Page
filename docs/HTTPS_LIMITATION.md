@@ -2,7 +2,10 @@
 
 ## Current status
 
-`http://status.yifilter.uk/` is intentionally an **HTTP-only demonstration endpoint**. It is a live ECS/ALB deployment, but it is **not HTTPS production-ready**. The ALB has only its HTTP listener, and no HTTP-to-HTTPS redirect is configured.
+The Terraform-managed ECS/ALB runtime is currently destroyed. When enabled,
+`http://status.yifilter.uk/` is intentionally an **HTTP-only demonstration
+endpoint**, not HTTPS production. No ACM certificate or HTTP-to-HTTPS redirect
+has been implemented.
 
 This is not an application or Terraform defect. The AWS identity available for this project lacks the ACM permissions required to request and validate a public certificate. The observed denial includes `acm-pca:ListCertificateAuthorities`; requesting a certificate also requires the relevant ACM public-certificate permissions. No attempt is made to bypass this boundary or to store a certificate/private key in GitHub or Terraform state.
 

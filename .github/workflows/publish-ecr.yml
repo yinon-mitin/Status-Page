@@ -4,29 +4,90 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Build and publish immutable images
+        required: true
+        type: boolean
+        default: true
+      deploy:
+        description: Publish images and run the approved ECS deployment
+        required: true
+        type: boolean
+        default: true
+
+run-name: Production release ${{ github.sha }}
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  id-token: write
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'il-central-1' }}
-  ECR_APP_REPOSITORY: ${{ vars.ECR_APP_REPOSITORY || 'statuspage-dev-app' }}
-  ECR_NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY || 'statuspage-dev-nginx' }}
-  ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'yinon-status-page-prod' }}
-  ECS_WEB_SERVICE: ${{ vars.ECS_WEB_SERVICE || 'web' }}
-  ECS_WORKER_SERVICE: ${{ vars.ECS_WORKER_SERVICE || 'worker' }}
-  ECS_SCHEDULER_SERVICE: ${{ vars.ECS_SCHEDULER_SERVICE || 'scheduler' }}
-  PUBLIC_HEALTHCHECK_URL: ${{ vars.PUBLIC_HEALTHCHECK_URL || 'http://status.yifilter.uk/healthz' }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_APP_REPOSITORY: ${{ vars.ECR_APP_REPOSITORY }}
+  ECR_NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_WEB_SERVICE: ${{ vars.ECS_WEB_SERVICE }}
+  ECS_WORKER_SERVICE: ${{ vars.ECS_WORKER_SERVICE }}
+  ECS_SCHEDULER_SERVICE: ${{ vars.ECS_SCHEDULER_SERVICE }}
+  PUBLIC_HEALTHCHECK_URL: ${{ vars.PUBLIC_HEALTHCHECK_URL }}
 
 jobs:
+  release-gate:
+    name: Validate production release configuration
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+    steps:
+      - id: gate
+        name: Fail closed when production is paused or misconfigured
+        env:
+          PRODUCTION_ENABLED: ${{ vars.PRODUCTION_ENABLED }}
+          AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          AWS_DEPLOY_ROLE_TO_ASSUME: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          if [[ "$PRODUCTION_ENABLED" != "true" ]]; then
+            echo "Production release is intentionally paused."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || {
+            echo "Production releases are restricted to main." >&2
+            exit 1
+          }
+          [[ "$GITHUB_REPOSITORY" == "yinon-mitin/Status-Page" ]] || {
+            echo "Production releases are restricted to yinon-mitin/Status-Page." >&2
+            exit 1
+          }
+          for name in AWS_ACCOUNT_ID AWS_REGION ECR_APP_REPOSITORY ECR_NGINX_REPOSITORY ECS_CLUSTER \
+            ECS_WEB_SERVICE ECS_WORKER_SERVICE ECS_SCHEDULER_SERVICE PUBLIC_HEALTHCHECK_URL \
+            AWS_ROLE_TO_ASSUME AWS_DEPLOY_ROLE_TO_ASSUME; do
+            [[ -n "${!name:-}" ]] || { echo "Repository Variable $name is required." >&2; exit 1; }
+          done
+          [[ "$ECR_APP_REPOSITORY" == "yinon-status-page-prod-app" ]]
+          [[ "$ECR_NGINX_REPOSITORY" == "yinon-status-page-prod-nginx" ]]
+          [[ "$ECS_CLUSTER" == "yinon-status-page-prod" ]]
+          [[ "$AWS_ACCOUNT_ID" == "992382545251" ]]
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
   publish:
     name: Build and publish immutable images
+    needs: release-gate
+    if: needs.release-gate.outputs.enabled == 'true' && (github.event_name == 'push' || inputs.publish)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate release configuration
         env:
@@ -39,20 +100,20 @@ jobs:
           }
 
       - name: Configure AWS credentials through GitHub OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build and push application image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile
@@ -63,7 +124,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push NGINX image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: Dockerfile.nginx
@@ -73,15 +134,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-production:
-    name: Deploy immutable images to production
-    needs: publish
-    if: needs.publish.result == 'success'
+  production-approval:
+    name: Approve production deployment
+    needs: [release-gate, publish]
+    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && (github.event_name == 'push' || inputs.deploy)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: production
+    steps:
+      - name: Record approval boundary
+        run: echo "Production deployment approved for $GITHUB_SHA"
+
+  deploy-production:
+    name: Deploy immutable images to production
+    needs: [release-gate, publish, production-approval]
+    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && needs.production-approval.result == 'success' && (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
+      - name: Check out deployment automation
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
       - name: Validate deployment configuration
         env:
           AWS_DEPLOY_ROLE_TO_ASSUME: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
@@ -93,73 +171,14 @@ jobs:
           }
 
       - name: Configure deployment credentials through GitHub OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - id: registry
-        name: Resolve ECR registry
-        run: |
-          account_id="$(aws sts get-caller-identity --query Account --output text)"
-          echo "value=${account_id}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> "$GITHUB_OUTPUT"
-
-      - name: Register task definitions with this immutable image version
+      - name: Deploy immutable task definitions and verify health
         env:
-          APP_IMAGE: ${{ steps.registry.outputs.value }}/${{ env.ECR_APP_REPOSITORY }}:sha-${{ github.sha }}
-          NGINX_IMAGE: ${{ steps.registry.outputs.value }}/${{ env.ECR_NGINX_REPOSITORY }}:sha-${{ github.sha }}
-        run: |
-          set -euo pipefail
-          deploy_service() {
-            local service="$1"
-            local update_nginx="$2"
-            local task_definition updated_definition task_arn
-
-            task_definition="$(aws ecs describe-services \
-              --cluster "$ECS_CLUSTER" \
-              --services "$service" \
-              --query 'services[0].taskDefinition' \
-              --output text)"
-
-            updated_definition="$(aws ecs describe-task-definition \
-              --task-definition "$task_definition" \
-              --query taskDefinition \
-              --output json | jq \
-                --arg app_image "$APP_IMAGE" \
-                --arg nginx_image "$NGINX_IMAGE" \
-                --argjson update_nginx "$update_nginx" '
-                  del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
-                      .compatibilities, .registeredAt, .registeredBy,
-                      .deregisteredAt) |
-                  .containerDefinitions |= map(
-                    if .name == "app" then .image = $app_image
-                    elif .name == "nginx" and $update_nginx then .image = $nginx_image
-                    else . end
-                  )'))"
-
-            task_arn="$(aws ecs register-task-definition \
-              --cli-input-json "$updated_definition" \
-              --query 'taskDefinition.taskDefinitionArn' \
-              --output text)"
-            aws ecs update-service \
-              --cluster "$ECS_CLUSTER" \
-              --service "$service" \
-              --task-definition "$task_arn" \
-              --force-new-deployment >/dev/null
-          }
-
-          deploy_service "$ECS_WEB_SERVICE" true
-          deploy_service "$ECS_WORKER_SERVICE" false
-          deploy_service "$ECS_SCHEDULER_SERVICE" false
-
-      - name: Wait for stable ECS services
-        run: |
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_WEB_SERVICE" "$ECS_WORKER_SERVICE" "$ECS_SCHEDULER_SERVICE"
-
-      - name: Verify public deployment health
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 6 --retry-all-errors \
-            --connect-timeout 10 --max-time 30 "$PUBLIC_HEALTHCHECK_URL"
+          IMAGE_TAG: sha-${{ github.sha }}
+          APP_IMAGE: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_APP_REPOSITORY }}:sha-${{ github.sha }}
+          NGINX_IMAGE: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_NGINX_REPOSITORY }}:sha-${{ github.sha }}
+        run: scripts/deploy_ecs_release.sh

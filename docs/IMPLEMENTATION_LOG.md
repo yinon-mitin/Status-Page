@@ -135,3 +135,16 @@ making an otherwise healthy Django response look like plain text.
 **Verification:** a fresh NGINX build served the Tailwind stylesheet, main
 stylesheet, JavaScript bundle, and favicon with HTTP 200 from a container run
 without a mounted volume. `make verify` passed before the production rollout.
+
+## 2026-09-03 — Production runtime safely destroyed
+
+**Implementation:** after the HTTP demonstration, a refreshed Terraform destroy
+plan was checked to contain only `yinon-status-page-prod-*` runtime resources and
+no IAM, state-bucket, protected role, or legacy resource changes. ALB/RDS
+deletion protection and ECR image deletion were prepared in a separate scoped
+step before the final destroy.
+
+**Verification:** Terraform state contains zero resources. ECR, ALB, RDS,
+Redis, VPC, endpoints, services, task definitions, and log groups are absent.
+The versioned state bucket, manual IAM roles, external Django secret, and an
+available final RDS snapshot remain as explicit recovery boundaries.
