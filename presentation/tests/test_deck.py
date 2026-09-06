@@ -27,6 +27,11 @@ class DeckTests(unittest.TestCase):
     def slide(self):
         return self.page.locator('.slide.active').get_attribute('id')
 
+    def test_success_marks_are_font_independent(self):
+        self.assertEqual(self.page.locator('.check svg').count(), 4)
+        self.assertEqual(self.page.locator('.ownership-contract svg').count(), 1)
+        self.assertNotIn('↗', self.page.locator('#closing .repo-link').text_content())
+
     def test_complete_keyboard_rehearsal(self):
         p = self.page
         p.keyboard.press('ArrowRight')

@@ -36,7 +36,7 @@
           <span class="tech-logo"><img src="assets/logos/terraform-original.svg" alt="Terraform"><b>Terraform</b></span>
           <span class="tech-logo aws-logo"><img src="assets/logos/amazonwebservices-original-wordmark.svg" alt="AWS"><b>AWS</b></span>
           <span class="tech-logo"><img src="assets/logos/github-original.svg" alt="GitHub"><b>GitHub Actions</b></span>
-          <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page ↗</a>
+          <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page</a>
         </div>
         <aside class="speaker-notes">
           <h3>Opening</h3>
@@ -285,7 +285,7 @@
             <div class="loop-node plan"><span>02</span><strong>Inspect</strong><small>Saved plan + JSON allowlist</small></div>
             <div class="loop-arrow">→</div>
             <div class="loop-node actual"><span>03</span><strong>Converge</strong><small>AWS provider read-back</small></div>
-            <div class="loop-return">re-run after convergence<br>↺ No changes</div>
+            <div class="loop-return">re-run after convergence<br>No changes</div>
           </div>
           <div class="iac-layers">
             <span class="label">DISPOSABLE RUNTIME · TERRAFORM-MANAGED</span>
@@ -496,10 +496,10 @@
           <div class="yes-mark"><span>PASS</span><small>Verified end-to-end AWS rehearsal</small></div>
         </header>
         <div class="evidence-grid">
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Local baseline</strong><small>Docker Compose: 6 running · 4 healthchecked</small><small>homepage 200 · <code>/healthz</code> 200 · RQ job completed</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>AWS deployment</strong><small>2 SHA-tagged images · exact-SHA private migration</small><small>web 2/2 · worker 1/1 · scheduler 1/1 · 2 healthy targets</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Observability & recovery</strong><small>CloudWatch dashboard + 18 alarms read back</small><small>RDS snapshot restored · application probe + Django migration history verified</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Idempotency & teardown</strong><small><code>No changes</code> for Terraform-managed attributes</small><small>76 runtime resources removed · state returned to zero</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Local baseline</strong><small>Docker Compose: 6 running · 4 healthchecked</small><small>homepage 200 · <code>/healthz</code> 200 · RQ job completed</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>AWS deployment</strong><small>2 SHA-tagged images · exact-SHA private migration</small><small>web 2/2 · worker 1/1 · scheduler 1/1 · 2 healthy targets</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Observability & recovery</strong><small>CloudWatch dashboard + 18 alarms read back</small><small>RDS snapshot restored · application probe + Django migration history verified</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Idempotency & teardown</strong><small><code>No changes</code> for Terraform-managed attributes</small><small>76 runtime resources removed · state returned to zero</small></div></div>
         </div>
         <div class="historical-banner"><span>DELIVERY_EVIDENCE.md · de3ba39</span><strong>Evidence captured and documented. Runtime intentionally destroyed after verification to stop recurring cloud cost.</strong></div>
         <aside class="speaker-notes">
@@ -555,7 +555,7 @@
             <h2>Questions?</h2>
             <p>A reproducible delivery process — from local understanding to verified teardown.</p>
             <strong>Yinon Mitin</strong>
-            <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page ↗</a>
+            <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page</a>
           </div>
           <div class="qr-card">
             <span class="label">GitHub repository</span>
@@ -593,7 +593,7 @@
         <header class="slide-header"><div><span class="appendix-tag">APPENDIX B</span><h2>Who owns infrastructure—and who owns releases?</h2></div></header>
         <div class="ownership-layout">
           <div class="owner-card terraform-owner"><img src="assets/logos/terraform-original.svg" alt="Terraform"><h3>Terraform owns structure</h3><ul><li>VPC, subnets and security groups</li><li>ALB, RDS, Redis and endpoints</li><li>ECS service structure and desired counts</li><li>Logs, dashboard and alarms</li><li>Service destruction</li></ul></div>
-          <div class="ownership-contract"><span>SHARED CONTRACT</span><strong>ECS service</strong><div>Terraform ignores only<br><code>task_definition</code> drift</div><b>⇄</b><div>Release automation registers<br>and deploys exact revisions</div></div>
+          <div class="ownership-contract"><span>SHARED CONTRACT</span><strong>ECS service</strong><div>Terraform ignores only<br><code>task_definition</code> drift</div><b aria-hidden="true"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M6 13h28l-7-7m7 21H6l7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></b><div>Release automation registers<br>and deploys exact revisions</div></div>
           <div class="owner-card release-owner"><img src="assets/logos/github-original.svg" alt="GitHub"><h3>Release automation owns revision</h3><ul><li>Exact-SHA application image</li><li>Exact-SHA NGINX image</li><li>Migration evidence</li><li>Task-definition revision</li><li>Rollout and rollback attempt</li></ul></div>
         </div>
         <div class="ownership-answer"><b>Why?</b> A later infrastructure apply must not silently roll a newer application release backward.</div>
