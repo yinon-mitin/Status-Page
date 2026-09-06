@@ -248,6 +248,10 @@ class TerraformLifecycleContractTests(unittest.TestCase):
     def test_destroy_cleans_workflow_registered_task_definition_revisions(self):
         destroy = (ROOT / "scripts" / "production_destroy.sh").read_text()
         self.assertIn("list-task-definitions", destroy)
+        self.assertLess(
+            destroy.index("gh variable set PRODUCTION_ENABLED"),
+            destroy.index('terraform -chdir="$TF_DIR" init'),
+        )
         for family in ("web", "worker", "scheduler"):
             self.assertIn(f"yinon-status-page-prod-{family}", destroy)
 

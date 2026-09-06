@@ -129,7 +129,7 @@
       s3d:'Private RDS 5432 and Redis 6379 accept application traffic only from ECS SG. RDS backups are retained for two days.',
       appFlow:'Pull request checks → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability and public health verification. The narrowly scoped OIDC roles are manually managed.',
       infraFlow:'Terraform format, validation, and TFLint → reviewed plan → controlled production apply. Production state is encrypted/versioned S3 state with native lockfiles at yinon-status-page/prod/terraform.tfstate.',
-      roadmapLead:'Local Docker is verified. The production AWS runtime is currently destroyed after a scoped teardown; guarded automation now recreates and removes it. HTTPS remains blocked pending ACM permissions.',
+      roadmapLead:'Local Docker and the full create → approved OIDC deploy → destroy rehearsal are verified. The AWS runtime is currently destroyed; HTTPS remains blocked pending ACM permissions.',
       r2d:'Terraform defines private network isolation, VPC endpoints, managed data services, secret references, logs, and cost-conscious defaults.',
       r3d:'When enabled, ECR and ECS run two web tasks across two AZs plus worker and scheduler services.'
     });
@@ -144,7 +144,7 @@
       s3d:'Private RDS 5432 и Redis 6379 принимают application traffic только от ECS SG. RDS backups хранятся два дня.',
       appFlow:'Проверки pull request → immutable linux/amd64 ECR image → GitHub Environment production approval → ECS task-definition rollout → service stability и public health verification. Узкие OIDC roles управляются вручную.',
       infraFlow:'Terraform format, validation и TFLint → reviewed plan → controlled production apply. Production state — encrypted/versioned S3 state с native lockfiles: yinon-status-page/prod/terraform.tfstate.',
-      roadmapLead:'Local Docker проверен. Production AWS runtime сейчас уничтожен после scoped teardown; guarded automation пересоздаёт и удаляет его. HTTPS заблокирован до выдачи ACM permissions.',
+      roadmapLead:'Local Docker и полный create → approved OIDC deploy → destroy rehearsal проверены. AWS runtime сейчас уничтожен; HTTPS заблокирован до выдачи ACM permissions.',
       r2d:'Terraform описывает private network isolation, VPC endpoints, managed data services, secret references, logs и cost-conscious defaults.',
       r3d:'При включении ECR и ECS запускают две web task в двух AZ, а также worker и scheduler services.'
     });

@@ -49,10 +49,10 @@ VPC address space и никогда не может быть public DNS target.
 | Направление | Статус | Подтверждение |
 | --- | --- | --- |
 | Локальный runtime | Готово | Шесть services работают; `/healthz` и homepage возвращают HTTP 200. |
-| Production ECS runtime | Приостановлен после проверенного teardown | Terraform-managed runtime намеренно уничтожен; remote state пуст, recovery boundaries сохранены. |
+| Production ECS runtime | Automated lifecycle проверен; сейчас приостановлен | Revision `86d711d` пересоздан, deployed через approval/OIDC, health-checked и полностью уничтожен; remote state пуст. |
 | ECS roles / task definitions | Ручной IAM bootstrap | Roles создаются вне Terraform; task definitions получают явные role ARNs. |
-| Network и data plane | Воспроизводим, сейчас отсутствует | Terraform описывает topology; scripts автоматизируют проверенные create/destroy plans. |
-| ECR publishing | Проверено | GitHub OIDC опубликовал immutable `linux/amd64` images в run `33788559359`; для ECR publishing и ECS deployment используются разные manually managed roles. |
+| Network и data plane | Live cycle проверен; сейчас отсутствует | Guarded scripts применили 54 foundation resources и 3 services, затем validated и уничтожили 57 resources. |
+| ECR publishing и ECS deployment | Проверено | Image run `34030885146` и approved deploy run `34031224217` завершились успешно с разными manually managed OIDC roles. |
 | Сканирование секретов | Готово | Gitleaks проверяет полную Git history в pull requests и `main`. |
 | Качество Terraform | Готово | `fmt`, `validate` и recommended TFLint rules выполняются до cloud planning. |
 
