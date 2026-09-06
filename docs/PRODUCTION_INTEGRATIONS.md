@@ -45,8 +45,14 @@ required binding names, probes the Worker health endpoint, and writes only the
 non-secret `ALERT_RELAY_URL` back to the private credentials file.
 
 The next production Terraform apply reads only `ALERT_RELAY_URL` and creates the
-SNS HTTPS subscription. The Worker automatically handles the signed SNS
-subscription confirmation.
+SNS HTTPS subscription when an approved SNS topic is available. The Worker
+automatically handles the signed SNS subscription confirmation.
+
+The training operator currently receives `AccessDenied` for `SNS:CreateTopic`.
+An account administrator must therefore create exactly
+`yinon-status-page-prod-alerts` in `il-central-1`, attach the scoped policy described
+in `terraform/monitoring.tf`, and provide its ARN as `external_alert_topic_arn`.
+Do not grant broad SNS administration merely for the demo.
 
 ## DNS lifecycle
 

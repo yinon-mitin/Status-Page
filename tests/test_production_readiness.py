@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class AwsMonitoringContracts(unittest.TestCase):
     def test_monitoring_and_budget_resources_are_declared(self):
         monitoring = (ROOT / "terraform" / "monitoring.tf").read_text()
+        variables = (ROOT / "terraform" / "variables.tf").read_text()
         for resource in (
             'resource "aws_sns_topic" "alerts"',
             'resource "aws_sns_topic_policy" "alerts"',
@@ -25,6 +26,10 @@ class AwsMonitoringContracts(unittest.TestCase):
         self.assertIn('limit_amount = "300"', monitoring)
         self.assertIn("subscriber_sns_topic_arns", monitoring)
         self.assertIn("budgets.amazonaws.com", monitoring)
+        self.assertIn('variable "create_alert_topic"', variables)
+        self.assertIn('variable "enable_aws_budget"', variables)
+        self.assertIn("count = var.enable_monitoring && var.create_alert_topic", monitoring)
+        self.assertIn("count = var.enable_monitoring && var.enable_aws_budget", monitoring)
 
     def test_monitoring_addresses_are_plan_allowlisted(self):
         validator = (ROOT / "scripts" / "validate_terraform_plan.py").read_text()
