@@ -63,6 +63,20 @@ class TerraformPlanSafetyTests(unittest.TestCase):
         }
         self.assertIn("create mode forbids action delete", "\n".join(self.validator.validate_plan(plan, "create")))
 
+    def test_create_accepts_task_definition_revision_replacement(self):
+        plan = {
+            "resource_changes": [
+                resource_change(
+                    "aws_ecs_task_definition.web",
+                    "aws_ecs_task_definition",
+                    ["delete", "create"],
+                    before={"tags": {"Project": "yinon-status-page", "Environment": "prod"}},
+                    after={"tags": {"Project": "yinon-status-page", "Environment": "prod"}},
+                )
+            ]
+        }
+        self.assertEqual([], self.validator.validate_plan(plan, "create"))
+
     def test_destroy_rejects_non_delete(self):
         plan = {
             "resource_changes": [

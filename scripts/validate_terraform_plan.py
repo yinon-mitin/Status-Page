@@ -139,7 +139,11 @@ def validate_plan(plan: Mapping[str, Any], mode: str, allow_empty: bool = False)
 
         action_text = ",".join(actions)
         if mode == "create":
-            if actions not in (["create"], ["update"]):
+            task_definition_replacement = (
+                resource_type == "aws_ecs_task_definition"
+                and actions in (["delete", "create"], ["create", "delete"])
+            )
+            if actions not in (["create"], ["update"]) and not task_definition_replacement:
                 errors.append(f"{address}: create mode forbids action {action_text}")
             identity_values = change_body.get("after")
 
