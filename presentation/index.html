@@ -238,9 +238,10 @@
             <li>Worker and scheduler use the same application image with different commands.</li>
             <li>RDS and Redis are managed services because persistent data has a different lifecycle from stateless containers.</li>
             <li>Private tasks reach ECR, S3, Logs and Secrets Manager through VPC endpoints; no permanent NAT Gateway is required in the baseline.</li>
+            <li>The baseline therefore has no general public Internet egress; arbitrary webhooks or UptimeRobot synchronization need an added egress path.</li>
           </ul>
           <h4>Transition</h4><p>The architecture is only one part of the story; the working method explains how I reached it safely.</p>
-          <h4>Likely questions</h4><p><b>Is the data tier multi-AZ?</b> The subnets span two AZs, but the demo-sized RDS instance and Redis node are single-AZ. The two-AZ availability demonstration is at the ALB and web-task layer.</p>
+          <h4>Likely questions</h4><p><b>Is the data tier multi-AZ?</b> No. The demo RDS instance and Redis node are single-AZ. The ALB spans two AZs; the web service has two tasks and subnets in both AZs, but the retained evidence does not prove one task per AZ.</p>
         </aside>
       </section>
 
@@ -380,7 +381,7 @@
             <li>Production images are tagged <code>sha-&lt;commit&gt;</code>; I do not rely on mutable <code>latest</code>.</li>
             <li>A private one-off migration must succeed for that exact SHA before deployment is allowed.</li>
             <li>An explicit deployment dispatch then reaches the GitHub Environment operator-approval boundary; the rehearsal does not claim independent four-eyes review.</li>
-            <li>The rollout stabilizes web first, then worker and scheduler, verifies health, and attempts rollback if an updated service fails.</li>
+            <li>The rollout stabilizes web first, then worker and scheduler, verifies health, and attempts rollback. Initial service bootstrap is a separate operator/Terraform phase; the Environment protects later releases.</li>
           </ul>
           <h4>Transition</h4><p>The confidence in this pipeline comes from how the checks evolved from manual verification.</p>
           <h4>Likely question</h4><p><b>Does every push deploy?</b> No. Image publication and runtime deployment are separate. Deployment requires workflow dispatch, exact migration evidence and production approval; <code>PRODUCTION_ENABLED=false</code> pauses the path after teardown.</p>
@@ -417,6 +418,7 @@
             <li><code>make verify</code> covers application behavior, Django tests, RQ processing, Terraform quality, automation contracts and documentation.</li>
             <li>CI builds and starts the complete Compose stack instead of running only static linting.</li>
             <li>A separate workflow scans the complete reachable Git history with Gitleaks.</li>
+            <li>The explicit Django suite is small; most custom tests validate platform contracts. <code>/healthz</code> is liveness-only, while separate runtime checks exercise the queue.</li>
           </ul>
           <h4>Transition</h4><p>Normal health proves the system works today; recovery testing asks whether it can survive data loss tomorrow.</p>
           <h4>Likely question</h4><p><b>Is an image build enough?</b> No. The gate also starts the stack and verifies HTTP, Django, tests and an enqueued RQ job.</p>
@@ -610,7 +612,7 @@
         </div>
         <div class="boundary-grid">
           <div><span>CURRENT RUNTIME</span><strong>Intentionally destroyed after rehearsal</strong></div>
-          <div><span>HTTPS</span><strong>Designed as an extension; not enabled in the verified demo</strong></div>
+          <div><span>HTTPS</span><strong>Partial Terraform resources only; the complete browser path was not implemented</strong></div>
           <div><span>DATA RECOVERY</span><strong>RDS restore-tested; Redis restore not tested; both demo services are single-AZ</strong></div>
           <div><span>UPSTREAM</span><strong>Archived v2.5.1 baseline, preserved with provenance</strong></div>
         </div>
