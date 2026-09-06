@@ -22,6 +22,7 @@ The account does not allow this project to change IAM. Do not add IAM resources 
 ## Safety properties
 
 - Every saved plan is converted to JSON and checked by `scripts/validate_terraform_plan.py`.
+- Every mutating script requires a clean exact `origin/main` checkout, includes untracked files in the cleanliness check, and rejects implicit root-module `*.auto.tfvars*` files.
 - Create mode rejects every delete action, Terraform IAM resource, state-bucket identifier, protected role, and `statuspage-dev-*` identifier.
 - Destroy requires the exact confirmation `yinon-status-page-prod`.
 - Destroy first applies a target-limited preparation plan that can only disable ALB/RDS deletion protection, enable deletion of images in the two production ECR repositories, and set a unique final RDS snapshot name.

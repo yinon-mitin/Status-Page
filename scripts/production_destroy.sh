@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+"$ROOT/scripts/validate_production_source.sh"
 TF_DIR="$ROOT/terraform"
 TFVARS="${TFVARS:-$TF_DIR/prod.tfvars}"
 AWS_PROFILE="${AWS_PROFILE:-status-page}"

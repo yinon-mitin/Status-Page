@@ -10,7 +10,7 @@ sha="$(git -C "$ROOT" rev-parse origin/main)"
   echo "Check out the current origin/main before creating production." >&2
   exit 2
 }
-[[ -z "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]] || {
+[[ -z "$(git -C "$ROOT" status --porcelain --untracked-files=all)" ]] || {
   echo "Tracked worktree changes must be committed before production creation." >&2
   exit 2
 }
