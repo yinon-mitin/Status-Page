@@ -151,11 +151,11 @@ Fargate cost and must run only during an approved demonstration window.
 
 | Control | Implemented | Static/local validation | AWS/integration proof |
 | --- | --- | --- | --- |
-| CloudWatch alarms/dashboard | yes | Terraform plan validated | partial live apply; final cycle pending |
+| CloudWatch alarms/dashboard | yes | Terraform plan validated | 18 alarms and dashboard live-verified, then destroyed |
 | SNS/Telegram delivery | yes, opt-in | Worker/unit tests | blocked by `SNS:CreateTopic` and missing external credentials |
 | `$300` project Budget | yes, opt-in | Terraform plan validated | blocked by Budget permissions and SNS |
-| one-off migration gate | yes | contracts/ShellCheck | pending operator permission proof |
-| semantic RDS restore | yes | contracts/ShellCheck | pending live rehearsal |
+| one-off migration gate | yes | contracts/ShellCheck | exact-SHA private Fargate task live-verified |
+| semantic RDS restore | yes | contracts/ShellCheck | probe/migrations verified; temporary DB/snapshot cleanup verified |
 | exact Cloudflare DNS | yes | unit/contract tests | pending credentials/live ALB |
 | SNS-to-Telegram relay | yes | Worker unit tests | pending credentials and administrator SNS bootstrap |
 | HTTPS | excluded | limitation documented | not implemented |

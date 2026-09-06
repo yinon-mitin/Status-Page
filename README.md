@@ -36,10 +36,10 @@ Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| Production ECS runtime | Automated lifecycle verified; currently paused | Revision `86d711d` was recreated, deployed through approval/OIDC, health-checked, and fully destroyed; remote state is empty. |
+| Production ECS runtime | Automated lifecycle verified; currently paused | Revision `de3ba39d` completed exact-SHA migration, approved OIDC rollout, health checks, semantic restore, and full destroy; remote state is empty. |
 | ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
-| Network and data plane | Live cycle verified; currently absent | Guarded scripts applied 54 foundation resources plus 3 services, then validated and destroyed 57 resources. |
-| ECR publishing and ECS deployment | Verified | Image run `34030885146` and approved deploy run `34031224217` succeeded with distinct manually managed OIDC roles. |
+| Network and data plane | Live cycle verified; currently absent | Guarded scripts created the complete runtime and monitoring plane, then validated and destroyed 76 resources. |
+| ECR publishing and ECS deployment | Verified | Image run `34041754952` and approved deploy run `34043025336` succeeded with distinct manually managed OIDC roles. |
 | Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
 | Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
 
