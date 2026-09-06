@@ -1,105 +1,79 @@
-# Thursday Terraform baseline
+# AWS infrastructure
 
-This directory implements immutable ECR repositories and the production ECS Fargate runtime for the Status-Page web, RQ worker, and RQ scheduler processes.
+[Русская версия](README.ru.md)
 
-Production is controlled by the private, ignored `prod.tfvars` and the guarded
-lifecycle scripts. The runtime is currently destroyed; the isolated remote
-state is empty while the state bucket, manual IAM roles, Django secret, and final
-RDS snapshot remain available.
+This Terraform root defines the reproducible AWS runtime for Status-Page in `il-central-1`.
 
-## What `terraform apply` creates now
+## Managed components
 
-- two private ECR repositories: `${project}-${environment}-app` and `${project}-${environment}-nginx`;
-- immutable SHA-tagged images, scan-on-push, and 30-image lifecycle policies;
-- an ECS cluster with Container Insights;
-- CloudWatch log groups for web, worker, and scheduler;
-- ECS task definitions that consume manually managed execution and task role ARNs;
-- three Fargate task definitions: web (app + NGINX sidecar), worker, and scheduler.
+- a VPC across two Availability Zones;
+- public subnets for the Application Load Balancer;
+- private application subnets for ECS Fargate;
+- private data subnets for RDS PostgreSQL and ElastiCache Redis;
+- VPC endpoints for ECR, S3, CloudWatch Logs and Secrets Manager;
+- immutable ECR repositories;
+- ECS cluster, task definitions and web, worker and scheduler services;
+- CloudWatch log groups, dashboard and alarms;
+- optional SNS notification and AWS Budget resources.
 
-With `create_data_plane = true`, Terraform derives private subnet IDs, security
-groups, target group, database/Redis endpoints, and the RDS-managed password
-secret ARN. The private inputs supply only the manual IAM role ARNs and external
-`STATUS_PAGE_SECRET_KEY` secret ARN.
+Terraform receives the ECS execution-role and task-role ARNs as variables. Those roles, the remote-state bucket and the application secret are prepared once outside this root.
 
-## Network foundation
+## Configuration
 
-`network.tf` implements the approved topology but is disabled by default with `create_network = false`: a VPC, public subnets in `il-central-1a` and `il-central-1b` for the internet-facing ALB, and internal application subnets in the same AZs for ECS. The ALB security group accepts public HTTP/HTTPS and has TCP/80 egress only to the ECS security group; the ECS security group accepts HTTP only from the ALB security group. Internal ECS subnets have no public IP assignment or direct Internet route.
-
-The approved baseline uses `il-central-1a` and `il-central-1b`; `il-central-1c` is reserved for future expansion. ECS runs two web tasks across the two application subnets, while worker and scheduler each start at one task. Private task egress uses VPC endpoints for ECR API/Docker, CloudWatch Logs, Secrets Manager, and S3. NAT Gateway is an optional, disabled-by-default path only for application features that need arbitrary public HTTPS egress.
-
-RDS is created with `publicly_accessible = false`, a private DB subnet group,
-ECS-SG-only ingress on 5432, encryption, and two-day automated backup retention.
-Cloudflare DNS is external to Terraform and must be updated after ALB recreation.
-HTTPS remains permission-blocked.
-
-## Automated production lifecycle
+From the repository root, copy the safe example to an ignored local file:
 
 ```bash
 cp terraform/environments/prod.tfvars.example terraform/prod.tfvars
-# Replace only the manual role and Django-secret placeholders.
-AWS_PROFILE=status-page scripts/production_create.sh
-
-SHA="$(git rev-parse origin/main)"
-CONFIRM_PRODUCTION_APPROVAL="$SHA" scripts/production_release.sh
-
-CONFIRM_DESTROY=yinon-status-page-prod \
-AWS_PROFILE=status-page scripts/production_destroy.sh
 ```
 
-Each script verifies AWS account `992382545251`, initializes the exact S3 state
-key, creates a saved plan, validates its JSON safety contract, and applies that
-exact plan. Destroy uses a unique final snapshot identifier and a separate
-target-limited preparation plan. See [`../docs/PRODUCTION_LIFECYCLE.md`](../docs/PRODUCTION_LIFECYCLE.md).
+Set deployment-specific values in `terraform/prod.tfvars`. Never commit this file, state, plans or credentials.
 
-Do not commit `prod.tfvars`, state files, plans, or secret values.
-
-IAM roles are a manual bootstrap boundary. Terraform does not create, update,
-attach, detach, or delete IAM roles or policies. Supply the ARNs of the
-manually managed `yinon-status-page-prod-ecs-execution` and
-`yinon-status-page-prod-ecs-task` roles through private variables.
-
-## Environment isolation
-
-Development and production use the same Terraform code but must use separate
-state objects and variable files. Production currently uses the encrypted,
-versioned S3 state object `yinon-status-page/prod/terraform.tfstate` in the
-manually bootstrapped state bucket. Start development with the checked-in examples:
+Initialize the S3 backend with the approved bucket and state key:
 
 ```bash
-cp terraform/environments/dev.tfvars.example terraform/dev.tfvars
-terraform -chdir=terraform init -backend-config="key=statuspage/dev/terraform.tfstate"
-terraform -chdir=terraform plan -var-file=dev.tfvars
+terraform -chdir=terraform init \
+  -backend-config="bucket=<state-bucket>" \
+  -backend-config="key=yinon-status-page/prod/terraform.tfstate" \
+  -backend-config="region=il-central-1" \
+  -backend-config="encrypt=true" \
+  -backend-config="use_lockfile=true"
 ```
 
-Use a different backend key and `prod.tfvars` for production. Never reuse a
-state file, subnet ID, database endpoint, Redis endpoint, or Secrets Manager
-ARN between environments. The `environment` variable is deliberately limited
-to `dev` and `prod` so accidental environment names cannot silently create a
-third, unmanaged deployment boundary.
+## Lifecycle
 
-This account requires an `Owner` tag on taggable resources; the default value is `yinon`. Change `owner` in `terraform.tfvars` if the account's policy requires a different exact value. Local state is acceptable only while one operator is preparing and reviewing the foundation. Before GitHub Actions performs Terraform `apply`, use an encrypted, versioned S3 backend with `use_lockfile = true`; DynamoDB locking is not required.
+Use the repository scripts from the project root rather than applying arbitrary Terraform commands:
 
-## GitHub Actions prerequisites
+```bash
+scripts/production_create.sh
+SHA="$(git rev-parse origin/main)"
+CONFIRM_PRODUCTION_APPROVAL="$SHA" scripts/production_release.sh
+CONFIRM_RESTORE_TEST="$SHA" scripts/production_backup_restore_test.sh
+CONFIRM_DESTROY=yinon-status-page-prod scripts/production_destroy.sh
+```
 
-The manually bootstrapped publisher and deployer roles use the immutable
-branch-bound `main` OIDC subject. Configure repository variables:
+The scripts enforce the expected repository revision, AWS account, resource prefixes and plan shape. Creation is phased so ECR repositories exist before immutable images are published and ECS services start. Releases run a separate one-off migration task before rolling out web, worker and scheduler. Destruction first prepares protected resources, then applies a fresh delete-only plan and verifies empty state.
 
-| Variable | Required value |
-| --- | --- |
-| `AWS_ACCOUNT_ID` | Exactly `992382545251`; this avoids requiring `sts:GetCallerIdentity` in the deployer role. |
-| `AWS_REGION` | `il-central-1` unless another region is deliberately chosen. |
-| `AWS_ROLE_TO_ASSUME` | ARN of a dedicated GitHub OIDC publishing role. |
-| `ECR_APP_REPOSITORY` | Exactly `yinon-status-page-prod-app`. |
-| `ECR_NGINX_REPOSITORY` | Exactly `yinon-status-page-prod-nginx`. |
-| `AWS_DEPLOY_ROLE_TO_ASSUME` | ARN of the distinct production ECS deployer role. |
-| `PRODUCTION_ENABLED` | `true` only while the production runtime exists. |
+## Direct Terraform checks
 
-The Environment reviewer gate runs in a separate approval job. The dependent
-deploy job therefore retains the branch-bound OIDC subject accepted by the
-deployer role. The publisher has ECR-only permissions; the deployer has scoped
-ECS actions and `iam:PassRole` only for the two manual ECS roles.
+```bash
+terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform validate
+tflint --chdir=terraform --config=.tflint.hcl
+```
 
-The training account does not permit IAM changes. Consequently the deployer
-cannot run a dedicated migration task; the web entrypoint performs Django
-migrations before Gunicorn. This limitation and the one-time manual role setup
-are documented in `docs/PRODUCTION_LIFECYCLE.md`.
+Production plans are saved outside the repository and checked by `scripts/validate_terraform_plan.py` before apply.
+
+## Runtime layout
+
+- ALB accepts public HTTP traffic and forwards it to the web service on TCP `80`.
+- ECS tasks have no public IP addresses.
+- RDS accepts TCP `5432` only from the ECS security group.
+- Redis accepts TCP `6379` only from the ECS security group.
+- The web service runs NGINX and Django/Gunicorn in one task.
+- Worker and scheduler services reuse the application image with different commands.
+
+## State and recovery
+
+The normal destroy removes the Terraform-managed runtime. It preserves the separately prepared state bucket, roles and application secret, along with the RDS final snapshot. This keeps the environment recreatable without mixing long-lived recovery assets into the short-lived demonstration runtime.
+
+See [the production lifecycle](../docs/PRODUCTION_LIFECYCLE.md) for the full runbook and [architecture](../docs/ARCHITECTURE.md) for the system design.

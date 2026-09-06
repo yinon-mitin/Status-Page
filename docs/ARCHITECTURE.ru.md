@@ -1,132 +1,136 @@
-# Финальный проект Yinon — AWS-архитектура Status-Page
+# Архитектура
 
-**Статус:** согласованное production-направление; локальный Docker milestone завершён · **Язык:** русский · **Дата:** 26 августа 2026
+[English version](ARCHITECTURE.md)
 
-## Граница между фактами и решениями
+## Назначение
 
-- **Факт из исходника:** проверен по закреплённому official upstream release `v2.5.1` в корне репозитория; `reference/ARCHITECTURE.source.html` остаётся historical reference material.
-- **Целевое решение:** предложенный AWS design, который нужно проверить в AWS account перед production use.
+Проект упаковывает Status-Page в воспроизводимую локальную и AWS-среду. Приложение сохраняет исходную модель Django, RQ, PostgreSQL и Redis, а платформа добавляет неизменяемые контейнеры, приватную сеть, управляемые хранилища данных, контролируемые релизы, мониторинг и проверенный сценарий восстановления.
 
-## Обзор проекта
-
-Status-Page — модульный монолит Django для публичного статуса, инцидентов, administration и REST API. Source runtime использует NGINX → Gunicorn/Django, PostgreSQL, Redis, RQ Worker и RQ Scheduler.
-
-**Закреплённый source:** официальный release `Status-Page/Status-Page` `v2.5.1` от 29 октября 2024, локально проверенный как Status-Page 2.5.1. Upstream project архивирован и больше не получает security support; это зафиксированное ограничение проекта.
-
-Целевой deployment: Docker + ECR + ECS Fargate + ALB/ACM + RDS PostgreSQL + ElastiCache Redis + Secrets Manager + IAM + CloudWatch + Terraform + GitHub Actions. NGINX остаётся в web task.
-
-## Текущее приложение — факты из исходника
-
-- Django 5.1.2 на Python ≥ 3.10; Gunicorn обслуживает `statuspage.wsgi` на `0.0.0.0:8001` внутри web container.
-- NGINX перенаправляет HTTP на HTTPS, отдаёт `/static/` с диска и проксирует dynamic requests к Gunicorn.
-- PostgreSQL — единственный system of record.
-- Redis DB 0 — RQ broker (`high`, `default`, `low`); Redis DB 1 — Django cache.
-- Отдельные процессы запускают `manage.py rqworker high default low` и `manage.py rqscheduler`.
-- `MEDIA_ROOT` — local disk, а plugin sync work может быть unsafe при concurrency.
-- Upstream Status-Page поддерживает optional SMTP notifications.
-
-## Целевая AWS-архитектура
+## Runtime
 
 ```mermaid
 flowchart TB
-  U[Internet users / API clients] --> CF[Cloudflare DNS only\nstatus.yifilter.uk]
-  CF --> ALB[Public ALB / HTTPS 443]
-  ACM[ACM certificate] -.-> ALB
-  subgraph VPC[AWS VPC — две Availability Zones]
-    subgraph PUB[Public subnets — il-central-1a и il-central-1b]
+  Client[Пользователи и API-клиенты] --> DNS[Cloudflare DNS]
+  DNS --> ALB[Публичный Application Load Balancer]
+
+  subgraph VPC[AWS VPC / две зоны доступности]
+    subgraph Public[Public subnets]
       ALB
     end
-    subgraph APP[Private application subnets]
-      WEB[ECS web / NGINX → Gunicorn-Django]
-      WKR[ECS worker / RQ Worker]
-      SCH[ECS scheduler / RQ Scheduler]
+
+    subgraph Application[Private application subnets]
+      Web[ECS web service\n2 Fargate tasks\nNGINX + Gunicorn/Django]
+      Worker[ECS worker service\nRQ Worker]
+      Scheduler[ECS scheduler service\nRQ Scheduler]
     end
-    subgraph DATA[Private data subnets — без public IP]
-      RDS[RDS PostgreSQL :5432]
-      REDIS[ElastiCache Redis :6379 / DB 0 queues · DB 1 cache]
+
+    subgraph Data[Private data subnets]
+      PostgreSQL[(RDS PostgreSQL)]
+      Redis[(ElastiCache Redis)]
     end
-    SM[Secrets Manager]
-    CW[CloudWatch]
+
+    Endpoints[VPC endpoints\nECR / S3 / Logs / Secrets]
+    CloudWatch[CloudWatch logs, dashboard и alarms]
   end
-  ALB --> WEB
-  WEB --> RDS & REDIS
-  WKR --> RDS & REDIS
-  SCH --> REDIS
-  WEB & WKR & SCH -. secrets .-> SM
-  WEB & WKR & SCH --> CW
+
+  ALB --> Web
+  Web --> PostgreSQL & Redis
+  Worker --> PostgreSQL & Redis
+  Scheduler --> Redis
+  Web & Worker & Scheduler --> Endpoints
+  Web & Worker & Scheduler --> CloudWatch
+
+  GitHub[GitHub Actions] -->|OIDC| ECR[Amazon ECR]
+  ECR --> Web & Worker & Scheduler
 ```
 
-Модель из трёх source runtime processes сохранена. AWS services и delivery tooling являются target decisions. ALB охватывает public subnets в `il-central-1a` и `il-central-1b`; web service запускает две task, распределённые по соответствующим internal application subnets. Worker и scheduler начинают с одной task каждый. RDS и Redis остаются private.
+## Роли приложения
 
-## Решения и компоненты
+| Роль | Процесс | Задача |
+| --- | --- | --- |
+| Web | NGINX и Gunicorn/Django | Публичные страницы, панель управления, REST API и статические файлы |
+| Worker | `manage.py rqworker high default low` | Асинхронные задачи из очередей Redis |
+| Scheduler | `manage.py rqscheduler` | Запуск периодических задач |
+| Database | PostgreSQL | Основное хранилище приложения |
+| Queue and cache | Redis | RQ broker и Django cache |
 
-| Область | Решение | Назначение / обоснование |
-|---|---|---|
-| Docker + ECR | Один image, Git-SHA tag | Reproducible web, worker и scheduler commands из одного image. |
-| ECS Fargate | Три ECS workloads | Managed containers без EC2 administration; две web task в двух internal subnets, а также по одной worker и scheduler task. |
-| ALB + ACM + Cloudflare DNS | Internet-facing ALB в двух public subnets | `status.yifilter.uk` использует Cloudflare в режиме DNS only; ACM валидирует и завершает HTTPS на ALB. HTTP перенаправляется на HTTPS, а `/healthz` проверяется через IP targets. |
-| NGINX | Внутри web task | Сохраняет source `/static/` и Gunicorn reverse-proxy contract. |
-| RDS PostgreSQL | Private managed database | `publicly_accessible = false`; RDS SG разрешает port 5432 только от ECS SG. Automated backups хранятся два дня. |
-| ElastiCache Redis | Private managed Redis | Сохраняет source cache/queue split; port 6379 только от ECS. |
-| Secrets Manager + IAM | Runtime credentials / least privilege | Хранит `SECRET_KEY`, database и Redis credentials, а также только approved external API keys. |
-| CloudWatch | Logs, metrics, alarms | Наблюдаемость service health, restarts, capacity, RDS и Redis. |
-| VPC endpoints | Private AWS-service egress | ECR API/Docker, CloudWatch Logs, Secrets Manager и S3 доступны ECS без NAT и public task IPs. |
-| NAT Gateway | Опционален, по умолчанию выключен | Остаётся Terraform option только если функциональности приложения нужны произвольные внешние HTTPS services; не является постоянным baseline из-за бюджета. |
-| Terraform | Infrastructure as Code | Version-controlled VPC, subnets, SGs, services, data tier, logging и outputs. |
-| GitHub Actions + OIDC | CI/CD | Tests и deploy с short-lived AWS credentials. |
-| EKS | Не выбран | Kubernetes operational overhead излишен для данного workload. |
+Web, worker и scheduler используют общий application image. Отдельный NGINX image содержит собранный frontend и static files, поэтому production web task не зависит от общего container volume.
 
-**Worker и scheduler:** worker запускает `rqworker` для internal asynchronous work. Scheduler запускает одну `rqscheduler` task, чтобы избежать duplicate periodic jobs.
+## Компоненты AWS
 
-## Network и security model
+| Компонент | Реализация |
+| --- | --- |
+| Сеть | Одна VPC в `il-central-1a` и `il-central-1b`, с public, application и data subnets |
+| Входящий трафик | Internet-facing ALB в двух public subnets, IP targets ведут к web service |
+| Вычисления | ECS Fargate services: две web tasks, один worker и один scheduler |
+| Образы | Два private ECR repositories с неизменяемыми Git SHA tags и lifecycle policies |
+| База данных | Encrypted private RDS PostgreSQL с automated backups и final snapshots |
+| Очередь и кэш | Encrypted private ElastiCache Redis replication group |
+| Секреты | Ссылки Secrets Manager передаются ECS tasks во время запуска |
+| Исходящий доступ | Interface endpoints для ECR, CloudWatch Logs и Secrets Manager; S3 gateway endpoint |
+| Мониторинг | CloudWatch log groups, dashboard и 18 alarms |
+| Terraform state | Encrypted versioned S3 backend с native lockfiles |
 
-- VPC `/16` использует `il-central-1a` и `il-central-1b`; `il-central-1c` подтверждён и оставлен для будущего расширения. Internet-facing ALB использует public subnets в обеих активных AZ. ECS tasks остаются во внутренних application subnets без public IP; две web task распределены между ними. RDS и ElastiCache остаются private.
-- ALB target group использует HTTP port 80, target type `ip`, cross-zone load balancing и `/healthz`: matcher `200`, interval 15 секунд, healthy threshold 2, unhealthy threshold 3.
-- Security groups разрешают Internet → ALB (80/443), ALB SG → ECS web SG (80), ECS SG → RDS SG (5432) и ECS SG → Redis SG (6379).
-- RDS имеет `publicly_accessible = false` и private DB subnet group. У Redis нет public endpoint. Data services принимают traffic только от ECS SG.
-- ECS обращается к обязательным AWS services через interface endpoints для ECR API, ECR Docker, CloudWatch Logs и Secrets Manager, а также S3 gateway endpoint. Endpoint SG разрешают HTTPS только от ECS SG. NAT Gateway не включается в cost-conscious baseline.
-- Использовать ACM TLS, RDS encryption и backups, compatible Redis TLS/authentication, IAM least privilege, GitHub OIDC, MFA и Secrets Manager.
-- Сохранить Django proxy/security settings, CSRF, secure cookies и source OTP/TOTP protections.
+NAT Gateway по умолчанию выключен. Для обязательных AWS API используются VPC endpoints, поэтому ECS tasks не получают public IP, а среда не несёт постоянных расходов на NAT.
 
-## CI/CD
-
-**Application:** tests + RQ smoke test + secret scan + Terraform static checks → Docker build → GitHub OIDC → ECR SHA image → ECS task definition → automatic rolling deployment из protected `main` → ECS/ALB health verification.
-
-**Infrastructure:** `terraform fmt -check` → `terraform init` → `terraform validate` → static/security checks → reviewed plan → protected approved apply.
-
-Rollback повторно разворачивает previous known-good SHA. Database migrations запускаются как controlled ECS one-off task.
-
-## Terraform layout
+## Сетевые правила
 
 ```text
-terraform/
-├── versions.tf  providers.tf  backend.tf  variables.tf  outputs.tf
-├── environments/{dev,prod}/
-└── modules/{network,security-groups,ecr,alb,ecs,rds,redis,iam,secrets,monitoring}/
+Internet            -> ALB security group       : HTTP ingress
+ALB security group  -> ECS security group       : TCP 80
+ECS security group  -> RDS security group       : TCP 5432
+ECS security group  -> Redis security group     : TCP 6379
+ECS security group  -> endpoint security group  : TCP 443
 ```
 
-Production foundation использует изолированный encrypted versioned S3 backend с native S3 lockfiles (`use_lockfile = true`); DynamoDB locking намеренно не используется. Legacy state `statuspage-dev` остаётся отдельным. Secrets нельзя помещать в `*.tfvars`.
+RDS и Redis не имеют публичного маршрута или публичной точки доступа. Security groups ссылаются друг на друга, вместо открытия database ports для широких CIDR ranges.
 
-## Ограничения и roadmap
+## Модель доставки
 
-- **Milestone на среду завершён:** Docker images и Docker Compose локально запускают web, worker, scheduler, PostgreSQL, Redis, NGINX, migrations, static files, `/healthz` и выполненный RQ smoke job.
-- Начать с двух web task в двух AZ, чтобы продемонстрировать compute availability; worker и scheduler останутся по одной task, пока media не будет durable (S3/EFS или formal restriction), а worker jobs — idempotent/locked.
-- Redis находится на request critical path; проверить recovery. Лимит расходов — $300; до создания persistent resources настроить budget alerts. Если приложению понадобятся произвольные public endpoints, опциональный NAT включается только на нужный срок демонстрации.
+```mermaid
+flowchart LR
+  PR[Pull request] --> CI[Tests, builds и security checks]
+  CI --> Main[Protected main]
+  Main --> Publish[OIDC image publication]
+  Publish --> Migration[Private one-off migration task]
+  Migration --> Approval[Production approval]
+  Approval --> Deploy[OIDC ECS rollout]
+  Deploy --> Verify[Проверка сервисов и HTTP]
+```
 
-| Этап | Milestone | Acceptance criteria |
-|---|---|---|
-| 0 | Decisions | Scope и risk register записаны. |
-| 1 | Local runtime — завершён | Complete Docker Compose stack работает и возвращает HTTP 200 через NGINX. |
-| 2 | Container — завершён | Один application image запускает три роли; отдельный NGINX image обслуживает web; production secrets отсутствуют в images. |
-| 3 | Foundation | Terraform создаёт network, SGs, VPC endpoints, tags и budget controls. |
-| 4 | Data | Private RDS (two-day backups) и private Redis проходят migration, cache и queue tests. |
-| 5 | ECS/ingress | Stable tasks, ALB/ACM HTTPS и health checks работают. |
-| 6 | CI/CD | OIDC, reviewed deploy, logs, alarms и rollback протестированы. |
-| 7 | Validation | Implementation соответствует architecture и воспроизводим. |
+GitHub использует отдельные OIDC roles для публикации образов и обновления ECS services. Релизы используют immutable tags `sha-<commit>`. Миграции базы выполняются private one-off Fargate task и должны успешно завершиться для точной revision до начала deployment. Web service стабилизируется раньше worker и scheduler.
 
-## Источники
+## Жизненный цикл инфраструктуры
 
-- `reference/ARCHITECTURE.source.html` — authoritative current architecture reference.
-- корень репозитория — закреплённый официальный upstream source release v2.5.1.
-- `TECHNOLOGY_INDEX.md` — English technology index.
-- `TECHNOLOGY_INDEX.ru.md` — Russian technology index.
+Terraform управляет VPC, subnets, security groups, VPC endpoints, ECR repositories, ECS cluster и services, ALB, RDS, Redis, log groups, dashboard и alarms. Основной интерфейс оператора состоит из четырёх scripts:
+
+```text
+production_create.sh
+  -> production_release.sh
+  -> production_backup_restore_test.sh
+  -> production_destroy.sh
+```
+
+Перед изменениями проверяются AWS account, точная revision `origin/main`, чистота source tree, явный private variables file и сохранённый Terraform plan. План проходит allowlist ресурсов и действий до apply.
+
+## Восстановление
+
+Restore rehearsal записывает уникальный probe в PostgreSQL, создаёт snapshot, восстанавливает временную private database, проверяет probe и Django migration history из Fargate task, затем удаляет все временные ресурсы. Runtime destroy создаёт encrypted final RDS snapshot и сохраняет remote state и bootstrap-ресурсы, необходимые для следующей демонстрации.
+
+## Основные решения
+
+- ECS Fargate убирает необходимость обслуживать EC2 hosts для небольшого workload.
+- Две web tasks и двухзонный ALB демонстрируют доступность application tier.
+- Один scheduler исключает дублирование периодических задач.
+- Immutable image tags связывают deployment с source revision.
+- Private data и application subnets оставляют публичным только load balancer.
+- VPC endpoints заменяют постоянный NAT Gateway для необходимых AWS services.
+- Terraform управляет структурой сервисов, а release workflow — deployed task-definition revisions.
+
+## Связанная документация
+
+- [Production lifecycle](PRODUCTION_LIFECYCLE.ru.md)
+- [Карта технологий](TECHNOLOGY_INDEX.ru.md)
+- [Подтверждение реализации](DELIVERY_EVIDENCE.ru.md)
+- [HTTPS scope](HTTPS_LIMITATION.ru.md)
+- [Происхождение upstream](https://github.com/yinon-mitin/Status-Page/blob/main/UPSTREAM.ru.md)

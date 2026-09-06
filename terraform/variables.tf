@@ -1,5 +1,5 @@
 variable "aws_region" {
-  description = "AWS Region for the Thursday ECR/ECS baseline."
+  description = "AWS Region for the ECR/ECS environment."
   type        = string
   default     = "il-central-1"
 }

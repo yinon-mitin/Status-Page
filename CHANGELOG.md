@@ -1,62 +1,38 @@
 # Changelog
 
-All notable project changes are recorded here. This project follows the spirit of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and uses ISO dates.
+Notable changes to this DevOps fork are recorded here. Application history before the fork remains available in the upstream Git history and release notes.
 
 ## [Unreleased]
 
 ### Changed
 
-- Fixed production static-asset delivery: the standalone NGINX image now builds
-  and contains the frontend bundle and project images. ECS does not share the
-  Docker Compose static-files volume, so without this change the public page
-  could render as unstyled plain text even while `/healthz` was healthy.
-- Pinned GitHub ECR publishing to `linux/amd64`, matching ECS Fargate's x86_64 runtime.
-- Added explicit ALB-to-ECS TCP/80 egress so ALB health probes can reach private Fargate targets.
-- Moved production ECS IAM roles to the manually managed bootstrap boundary; Terraform now consumes explicit role ARNs and does not manage IAM roles or policies.
+- Reorganized the public documentation around the finished system rather than its development timeline.
 
-- Excluded Git metadata from the Docker build context to keep local and CI image builds small and reproducible.
-- Excluded local Terraform caches, state, plans, and environment variable files from the Docker build context.
-- Added disabled-by-default VPC, public/internal subnet, route-table, and ALB/ECS security-group Terraform code for the next network phase.
-- Redesigned both README files with a project icon, badges, concise navigation, status table, quick start, and parallel English/Russian documentation links.
-- Confirmed the production topology: private RDS, Cloudflare DNS-only HTTPS at `status.yifilter.uk`, two-AZ web tasks, two-day RDS backups, and a $300 cost ceiling.
+## Project completion
 
 ### Added
 
-- Deployed the private production ECS services: two web tasks across the application subnets, one RQ worker, and one RQ scheduler. The public HTTP ALB health endpoint and homepage returned HTTP 200 after rollout.
-- Published immutable `linux/amd64` application and NGINX images to the production ECR repositories after the initial local ARM64 image mismatch was diagnosed.
-- Applied production VPC, public/internal/data subnets, public ALB, VPC endpoints, private RDS PostgreSQL, and encrypted private Redis; ACM remains separately permission-gated.
-- Isolated production Terraform S3 state bucket with versioning, AES-256 encryption, public-access block, ownership enforcement, and native S3 lockfiles.
-- Production `yinon-status-page-prod-*` ECR/ECS/CloudWatch foundation: immutable scan-on-push repositories, lifecycle policies, ECS cluster, log groups, and task definitions.
-- Project icon at `assets/statuspage-devops-icon.png`.
-- Makefile targets for local Compose and Terraform quality checks.
-- Full Docker Compose smoke test in GitHub Actions: health checks, NGINX HTTP, Django system check, and cleanup.
-- RQ end-to-end smoke test that verifies a Django-enqueued job completes through Redis and the worker.
-- GitHub Actions secret scanning with Gitleaks across the full repository history.
-- Terraform static quality gate using the recommended TFLint ruleset, in addition to formatting and validation.
-- Documented endpoint-first private ECS egress; NAT Gateway is now an optional, disabled-by-default Terraform path.
-- Added an isolated `yinon-status-page-smoke-*` Terraform configuration for temporary ECR/ECS image-reference and idempotency testing; it is explicitly destroyed after verification.
+- Complete six-service Docker Compose environment for PostgreSQL, Redis, Django/Gunicorn, NGINX, RQ Worker and RQ Scheduler.
+- Standalone application and NGINX images, including compiled frontend assets.
+- Terraform-managed AWS VPC, public/application/data subnets, security groups, VPC endpoints, ECR, ECS Fargate, ALB, RDS PostgreSQL, ElastiCache Redis and CloudWatch monitoring.
+- Guarded create, release, verification, semantic database restore and destroy automation.
+- GitHub Actions validation, full-history secret scanning, immutable ECR publication and approved ECS deployment through separate OIDC roles.
+- Dedicated private Fargate migration task with exact-revision release evidence.
+- CloudWatch dashboard and 18 alarms covering ALB, ECS, RDS and Redis.
+- Exact-host Cloudflare DNS updater and optional signed SNS-to-Telegram relay.
+- English and Russian architecture, lifecycle, technology and validation documentation.
 
 ### Verified
 
-- Re-ran the Wednesday Docker Compose acceptance checks: all six services are up, `/healthz` and the homepage return HTTP 200, and `manage.py check` passes.
-- Rechecked the Thursday AWS and CI deliverables: both ECR repositories are immutable and scan on push; the ECS cluster is active with Container Insights; GitHub Actions validation is successful.
-- Completed an isolated ECR/ECS smoke test: pushed both local images to temporary `yinon-status-page-smoke-*` repositories, confirmed a no-change Terraform plan, and destroyed the two repositories, their images, and the temporary ECS cluster.
+- Local runtime health, static assets, Django checks, tests and RQ job execution.
+- Real AWS create, immutable image publication, migration, ECS rollout and HTTP health.
+- Terraform idempotency after deployment.
+- Semantic RDS snapshot restore into a disposable private database.
+- Guarded removal of the Terraform-managed runtime with empty final state.
 
-## [2026-08-24]
+## Initial foundation
 
 ### Added
 
-- Forked the official Status-Page release `v2.5.1` and preserved upstream provenance with the `upstream-v2.5.1` tag.
-- Dockerfiles, Docker Compose runtime, NGINX reverse proxy, environment-based configuration, and `/healthz` endpoint.
-- English and Russian architecture, technology, upstream-policy, and infrastructure documentation.
-- Terraform ECR/ECS baseline, CloudWatch log groups, ECR lifecycle policies, ECS task-definition definitions, and guarded ECS-service configuration.
-- GitHub Actions validation workflow and OIDC-based ECR publishing workflow.
-- Thursday implementation status documents recording the applied AWS resources and the current IAM limitation.
-
-### Changed
-
-- Replaced the previous instructional Status-Page archive with the official stable upstream `v2.5.1` source.
-
-## Infrastructure state note
-
-The ECR repositories, lifecycle policies, ECS cluster, and CloudWatch log groups were created in AWS account `992382545251`, region `il-central-1`. ECS task definitions and services are not yet created because the current IAM identity is denied `iam:ListRolePolicies`; see `docs/THURSDAY_STATUS.md`.
+- Pinned Status-Page `v2.5.1` source with preserved upstream history and Apache-2.0 license.
+- Initial Docker, Compose, Terraform and CI foundation for the project.

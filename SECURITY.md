@@ -1,21 +1,26 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+[Русская версия](SECURITY.ru.md)
 
-We provide the following Versions with Security Updates:
+## Scope
 
-| Version  | Supported          | Initial Release | Until          |
-|----------|--------------------|-----------------|----------------|
-| 2.5.x    | :white_check_mark: | May 30, 2024    | Further notice |
-| 2.4.x    | :white_check_mark: | June 9, 2023    | Further notice |
-| 2.3.x    | :x:                | June 5, 2023    | June 5, 2024   |
-| 2.2.x    | :x:                | Mar 3, 2023     | Mar 3, 2024    |
-| 2.1.x    | :x:                | Feb 11, 2023    | Aug 11, 2023   |
-| 2.0.x    | :x:                | Nov 3, 2022     | May 3, 2023    |
-| 1.10.x   | :x:                | Jul 8, 2022     | Jul 8, 2023    |
-| 1.9.x    | :x:                | Feb 2, 2022     | Feb 2, 2023    |
-| <= 1.8.x | :x:                |                 |                |
+Security reports for this repository should cover the project-specific Docker, Terraform, automation, configuration and application changes. The bundled Status-Page application is pinned to the archived upstream release `v2.5.1`; upstream issues should be checked against the original repository before reporting them here.
 
-## Reporting a Vulnerability
+## Supported code
 
-Please use GitHub's [Vulnerability Report Feature](https://github.com/Status-Page/Status-Page/security), as it is the fastest way to get in touch with us.
+The current `main` branch is the only supported project revision. Historical branches, demonstration deployments and the archived upstream application are not maintained as separate release lines.
+
+## Reporting a vulnerability
+
+Use GitHub's private vulnerability reporting feature for this repository. Include:
+
+- the affected file or component;
+- steps to reproduce the issue;
+- expected impact;
+- a suggested mitigation, if known.
+
+Do not open a public issue containing credentials, tokens, private infrastructure values or exploit details. The repository does not accept production secrets in source, examples, issues or logs.
+
+## Deployment responsibility
+
+Anyone deploying this project is responsible for reviewing dependencies, rotating credentials, applying relevant security updates and validating the target account's access policies. The checked-in automation provides reproducible controls; it is not a managed security service.
