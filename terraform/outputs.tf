@@ -20,7 +20,7 @@ output "alb_dns_name" {
 
 output "alert_topic_arn" {
   description = "SNS topic used by CloudWatch alarms and the project Budget."
-  value       = var.enable_monitoring ? aws_sns_topic.alerts[0].arn : null
+  value       = local.effective_alert_topic_arn
 }
 
 output "cloudwatch_dashboard_name" {

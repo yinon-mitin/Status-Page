@@ -53,18 +53,21 @@ Terraform creates one project dashboard and alarms for:
 - Redis engine CPU, memory usage, and evictions;
 - recent application errors through a CloudWatch Logs Insights widget.
 
-All alarm and recovery actions route to the exact SNS topic:
+Alarm and recovery actions can route to the exact SNS topic:
 
 ```text
 arn:aws:sns:il-central-1:992382545251:yinon-status-page-prod-alerts
 ```
 
 The topic policy allows publish only from project-prefixed CloudWatch alarms in the
-same account and the exact project Budget. No IAM role is created.
+same account and the exact project Budget. No IAM role is created. In the training
+account, `SNS:CreateTopic` is denied, so dashboard and alarms are enabled without
+action delivery. An administrator-created exact topic can be supplied through
+`external_alert_topic_arn` after its policy is reviewed.
 
 ## AWS Budget
 
-Terraform creates a `$300 USD` monthly cost Budget filtered by the resource tag:
+Terraform contains an opt-in `$300 USD` monthly cost Budget filtered by the resource tag:
 
 ```text
 Project=yinon-status-page
@@ -78,7 +81,11 @@ Notifications are emitted at:
 
 The `Project` cost-allocation tag must be active in AWS Billing. Tag activation and
 cost data can take time to propagate. The Budget is project-scoped, not an assertion
-about the entire training account.
+about the entire training account. The training identity is denied
+`budgets:ViewBudget` and cannot prove create/update access, so
+`enable_aws_budget=false` is the demonstrated configuration. Enabling it requires
+administrator-granted Budget permissions plus the approved SNS topic; otherwise the
+plan fails closed.
 
 ## Telegram alert delivery
 
@@ -142,10 +149,11 @@ Fargate cost and must run only during an approved demonstration window.
 
 | Control | Implemented | Static/local validation | AWS/integration proof |
 | --- | --- | --- | --- |
-| CloudWatch alarms/dashboard | yes | Terraform plan validated | pending next live cycle |
-| `$300` project Budget | yes | Terraform plan validated | pending next live cycle |
+| CloudWatch alarms/dashboard | yes | Terraform plan validated | partial live apply; final cycle pending |
+| SNS/Telegram delivery | yes, opt-in | Worker/unit tests | blocked by `SNS:CreateTopic` and missing external credentials |
+| `$300` project Budget | yes, opt-in | Terraform plan validated | blocked by Budget permissions and SNS |
 | one-off migration gate | yes | contracts/ShellCheck | pending operator permission proof |
 | semantic RDS restore | yes | contracts/ShellCheck | pending live rehearsal |
 | exact Cloudflare DNS | yes | unit/contract tests | pending credentials/live ALB |
-| SNS-to-Telegram relay | yes | Worker unit tests | pending credentials/end-to-end alert |
+| SNS-to-Telegram relay | yes | Worker unit tests | pending credentials and administrator SNS bootstrap |
 | HTTPS | excluded | limitation documented | not implemented |

@@ -88,5 +88,5 @@ statuspage/          Django source из upstream v2.5.1
 - ALB рассчитан на public subnets; ECS tasks остаются internal.
 - RDS остаётся private (`publicly_accessible = false`) и принимает PostgreSQL traffic только от ECS security group.
 - При активном runtime `status.yifilter.uk` остаётся HTTP-only demonstration endpoint. Сейчас runtime уничтожен, а ACM permissions по-прежнему отсутствуют. См. [`docs/HTTPS_LIMITATION.ru.md`](docs/HTTPS_LIMITATION.ru.md).
-- Добавлены отдельный migration gate, CloudWatch dashboard/alarms, project-scoped AWS Budget `$300`, безопасный SNS→Telegram relay и semantic private RDS restore rehearsal. Текущий evidence-status указан в [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md); implementation не выдаётся за live proof.
+- Добавлены отдельный migration gate, CloudWatch dashboard/alarms, opt-in project-scoped AWS Budget `$300`, безопасный SNS→Telegram relay и semantic private RDS restore rehearsal. Budget/SNS delivery остаются permission-gated в учебном аккаунте. Текущий evidence-status указан в [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md); implementation не выдаётся за live proof.
 - Fork сохраняет upstream [Apache-2.0 licence](LICENSE.txt), source history и тег `upstream-v2.5.1`.

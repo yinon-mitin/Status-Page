@@ -125,9 +125,33 @@ variable "teardown_mode" {
 }
 
 variable "enable_monitoring" {
-  description = "Create the production CloudWatch dashboard, alarms, SNS topic, and project-scoped monthly Budget."
+  description = "Create the production CloudWatch dashboard and alarms. Notification transport and Budget remain separately permission-gated."
   type        = bool
   default     = true
+}
+
+variable "create_alert_topic" {
+  description = "Create the production SNS topic and policy. Keep false when the operator lacks SNS administration permissions."
+  type        = bool
+  default     = false
+}
+
+variable "external_alert_topic_arn" {
+  description = "Optional manually bootstrapped SNS topic ARN used when create_alert_topic is false. Its policy must allow the exact project alarms and Budget."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.external_alert_topic_arn == null || var.external_alert_topic_arn == "arn:aws:sns:il-central-1:992382545251:yinon-status-page-prod-alerts"
+    error_message = "external_alert_topic_arn must be the exact il-central-1 production alert topic ARN."
+  }
+}
+
+variable "enable_aws_budget" {
+  description = "Create the project-scoped 300 USD AWS Budget. Requires Budget permissions and an effective alert topic."
+  type        = bool
+  default     = false
 }
 
 variable "alert_https_endpoints" {

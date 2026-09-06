@@ -1,7 +1,8 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  alert_topic_name = "${var.project}-${var.environment}-alerts"
+  alert_topic_name          = "${var.project}-${var.environment}-alerts"
+  effective_alert_topic_arn = var.create_alert_topic ? aws_sns_topic.alerts[0].arn : var.external_alert_topic_arn
   monitored_ecs_services = var.create_services ? {
     web = {
       name          = aws_ecs_service.web[0].name
@@ -16,17 +17,17 @@ locals {
       desired_count = var.scheduler_desired_count
     }
   } : {}
-  alarm_actions = var.enable_monitoring ? [aws_sns_topic.alerts[0].arn] : []
+  alarm_actions = var.enable_monitoring && local.effective_alert_topic_arn != null ? [local.effective_alert_topic_arn] : []
 }
 
 resource "aws_sns_topic" "alerts" {
-  count = var.enable_monitoring ? 1 : 0
+  count = var.enable_monitoring && var.create_alert_topic ? 1 : 0
   name  = local.alert_topic_name
   tags  = local.resource_tags
 }
 
 resource "aws_sns_topic_policy" "alerts" {
-  count = var.enable_monitoring ? 1 : 0
+  count = var.enable_monitoring && var.create_alert_topic ? 1 : 0
   arn   = aws_sns_topic.alerts[0].arn
   policy = jsonencode({
     Version = "2012-10-17"
@@ -73,9 +74,9 @@ resource "aws_sns_topic_policy" "alerts" {
 }
 
 resource "aws_sns_topic_subscription" "https_alerts" {
-  for_each = var.enable_monitoring ? toset(var.alert_https_endpoints) : toset([])
+  for_each = var.enable_monitoring && local.effective_alert_topic_arn != null ? toset(var.alert_https_endpoints) : toset([])
 
-  topic_arn = aws_sns_topic.alerts[0].arn
+  topic_arn = local.effective_alert_topic_arn
   protocol  = "https"
   endpoint  = each.value
 }
@@ -366,7 +367,7 @@ resource "aws_cloudwatch_dashboard" "production" {
         width  = 24
         height = 2
         properties = {
-          markdown = "# Status-Page production\nHTTP-only demo. Alarm notifications route through `${local.alert_topic_name}`."
+          markdown = "# Status-Page production\nHTTP-only demo. Alarm actions: `${coalesce(local.effective_alert_topic_arn, "disabled by the training-account SNS permission boundary")}`."
         }
       },
       {
@@ -470,7 +471,7 @@ resource "aws_cloudwatch_dashboard" "production" {
 }
 
 resource "aws_budgets_budget" "project" {
-  count = var.enable_monitoring ? 1 : 0
+  count = var.enable_monitoring && var.enable_aws_budget ? 1 : 0
 
   name         = "${var.project}-${var.environment}-monthly"
   budget_type  = "COST"
@@ -488,7 +489,7 @@ resource "aws_budgets_budget" "project" {
     threshold                 = 50
     threshold_type            = "PERCENTAGE"
     notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts[0].arn]
+    subscriber_sns_topic_arns = [local.effective_alert_topic_arn]
   }
 
   notification {
@@ -496,7 +497,7 @@ resource "aws_budgets_budget" "project" {
     threshold                 = 80
     threshold_type            = "PERCENTAGE"
     notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts[0].arn]
+    subscriber_sns_topic_arns = [local.effective_alert_topic_arn]
   }
 
   notification {
@@ -504,10 +505,17 @@ resource "aws_budgets_budget" "project" {
     threshold                 = 100
     threshold_type            = "PERCENTAGE"
     notification_type         = "FORECASTED"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts[0].arn]
+    subscriber_sns_topic_arns = [local.effective_alert_topic_arn]
   }
 
   tags = local.resource_tags
 
   depends_on = [aws_sns_topic_policy.alerts]
+
+  lifecycle {
+    precondition {
+      condition     = local.effective_alert_topic_arn != null
+      error_message = "enable_aws_budget requires either create_alert_topic or external_alert_topic_arn."
+    }
+  }
 }
