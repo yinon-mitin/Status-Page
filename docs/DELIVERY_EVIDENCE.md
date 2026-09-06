@@ -20,14 +20,18 @@ Private data plane: RDS PostgreSQL and ElastiCache Redis
 | Requirement | Implemented configuration | Current evidence | Status |
 | --- | --- | --- | --- |
 | Local development | Docker Compose runs web, NGINX, PostgreSQL, Redis, worker, and scheduler. | `make verify` was passed locally using OrbStack Docker. | Verified locally |
-| Production runtime | Separate `yinon-status-page-prod-*` ECS, ALB, RDS, Redis, ECR, and manually managed ECS roles in `il-central-1`. | Revision `86d711d7c915d5efa66cb685a25964d7edf57a94`: create applied `54 + 3` resources; web `2/2`, worker `1/1`, scheduler `1/1`, two healthy ALB targets; destroy validated 57 deletes and returned empty state. | Automated live cycle verified; currently paused |
+| Production runtime | Separate `yinon-status-page-prod-*` ECS, ALB, RDS, Redis, ECR, and manually managed ECS roles in `il-central-1`. | Revision `de3ba39d4f953ce8baa6e73167361d2063302a64`: resumable create, exact-SHA migration, web `2/2`, worker `1/1`, scheduler `1/1`, HTTP 200 health, no-change plan, approved rollout, semantic restore, and 76-resource destroy to empty state. | Automated live cycle verified; currently paused |
 | Terraform remote state | S3 backend with locking, encrypted/versioned bucket `yinon-status-page-tfstate-992382545251`. | Production state key remains available and empty after teardown. | Backend retained; runtime absent |
 | Environment separation | `environment` is validated as `dev` or `prod`; separate example contracts exist. | Production is paused. A cloud dev runtime has **not** been applied or verified and must use its own state key and resources. | Configuration verified; runtimes absent |
 | CI | `Validate` and `Security scan` run for PRs and pushes to `dev` and `main`. | Main runs `33765216944` (Validate) and `33765216994` (Security scan) succeeded. | Verified on main |
 | Main branch flow | GitHub `main` requires a pull request, successful required checks, up-to-date branches, resolved conversations, linear history, and has direct pushes/force pushes blocked. | GitHub branch-protection rule is configured. | Configured |
-| Production approval | GitHub Environment `production` is restricted to protected branches and requires a reviewer before its approval job completes. | Run `34031224217` stopped at, received, and enforced the approval before deploy. | Verified |
-| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | Run `34030885146` successfully assumed the dedicated publisher role and published both images for exact revision `86d711d`. | Verified |
-| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME`; approval and branch-bound OIDC are separate dependent jobs. | Run `34031224217` passed the `production` approval job, assumed the deployer role, updated all services, reached stability, and passed provider health. | Verified |
+| Production approval | GitHub Environment `production` is restricted to protected branches and requires a reviewer before its approval job completes. | Run `34043025336` enforced approval after exact-SHA migration evidence and before deploy. | Verified |
+| GitHub OIDC publish | Publish job uses GitHub OIDC and immutable `sha-${github.sha}` amd64 ECR tags. | Run `34041754952` published both images for the final rehearsal revision through the dedicated role. | Verified |
+| GitHub OIDC deploy | Deployment uses a distinct `AWS_DEPLOY_ROLE_TO_ASSUME`; approval and branch-bound OIDC are separate dependent jobs. | Run `34043025336` passed approval, assumed the deployer role, updated all services, reached stability, and passed provider health. | Verified |
+| Monitoring | CloudWatch dashboard plus 18 ALB/ECS/RDS/Redis alarms. | Exact alarm count, empty permission-bound actions, dashboard API read-back, and runtime metrics configuration were live-verified. All were removed by destroy. | Verified; currently absent |
+| Backup restore | Manual snapshot restored to a disposable private RDS instance and verified from a private Fargate task. | Exact probe row and populated `django_migrations` were found; source probe, restored DB, test snapshot, and test task definitions all read back absent. | Semantic restore verified |
+| SNS/Telegram | Signed SNS relay with freshness/KV replay controls is implemented. | `SNS:CreateTopic` is denied and integration credentials were not supplied. | Implemented; permission/credential blocked |
+| AWS Budget | Opt-in project-tagged monthly `$300` Budget with 50/80/100 percent notifications. | `budgets:ViewBudget` is denied; creation was not attempted after the permission was established. | Implemented; permission blocked |
 | HTTPS | ACM termination is the target architecture. | No public runtime currently exists; ACM permissions remain unavailable. The recovery procedure is documented in [`HTTPS_LIMITATION.md`](HTTPS_LIMITATION.md). | Runtime absent; access blocked |
 
 ## Release procedure
@@ -37,8 +41,9 @@ Private data plane: RDS PostgreSQL and ElastiCache Redis
 3. Open a pull request from `dev` to `main`. GitHub blocks direct pushes to `main`; required checks must pass.
 4. Merging `main` starts the immutable `linux/amd64` ECR build. Images are tagged `sha-<commit SHA>`.
 5. The `Deploy immutable images to production` job pauses at GitHub Environment **production** for reviewer approval.
-6. After approval, the deployment role registers new ECS task-definition revisions and waits for all three services to become stable. In this restricted training account, the web entrypoint runs Django migrations before Gunicorn because the deployer cannot call `ecs:RunTask` and IAM cannot be changed.
-7. Verify `/healthz`, the public page, ALB target health, and a Terraform no-change plan.
+6. The operator runs a private one-off migration task for the exact immutable SHA. Only matching `MIGRATION_EVIDENCE_SHA` permits workflow dispatch; production web startup migrations are disabled.
+7. After approval, the deployment role registers new ECS task-definition revisions and waits for all three services to become stable.
+8. Verify `/healthz`, the public page, ALB target health, and a Terraform no-change plan.
 
 No GitHub workflow may receive broad Terraform or production access merely to make deployment convenient. IAM roles and policies are a manual security boundary in this project.
 
@@ -58,6 +63,30 @@ The live rehearsal for exact `main` revision
 - guarded destroy: 57 deletes only, followed by zero Terraform resources and zero active/inactive exact-family task definitions.
 
 ECR, ALB, RDS, Redis, and the production VPC were read back as absent. The versioned state bucket, four manual roles, protected legacy role, external Django secret, and available 20 GiB final RDS snapshot were preserved intentionally.
+
+## Production-readiness rehearsal
+
+The final rehearsal for `de3ba39d4f953ce8baa6e73167361d2063302a64`
+proved the additional controls:
+
+- image publication run [`34041754952`](https://github.com/yinon-mitin/Status-Page/actions/runs/34041754952);
+- private one-off migration exited successfully and recorded the exact main SHA;
+- CloudWatch dashboard and 18 alarms passed direct API validation;
+- ECS reached web `2/2`, worker `1/1`, scheduler `1/1`; `/healthz` returned HTTP 200;
+- semantic restore created an exact probe, restored a private temporary PostgreSQL
+  instance, found the probe and populated `django_migrations`, then read back zero
+  temporary DBs, snapshots, and active restore task definitions;
+- approved OIDC rollout run [`34043025336`](https://github.com/yinon-mitin/Status-Page/actions/runs/34043025336) completed all services and health verification;
+- refreshed Terraform plan returned detailed exit code `0` (`No changes`); and
+- guarded destroy removed 76 Terraform-managed resources and returned state count
+  `0`, `PRODUCTION_ENABLED=false`, and `MIGRATION_EVIDENCE_SHA=destroyed`.
+
+The encrypted final snapshot
+`yinon-status-page-prod-postgres-final-20260906154858` is available. Runtime ECR,
+ALB, RDS, Redis, VPC, dashboard, and alarms were read back absent. SNS/Telegram and
+the AWS Budget remain honest permission-bound non-claims: the operator is denied
+`SNS:CreateTopic` and `budgets:ViewBudget`, and no integration credentials were
+provided.
 
 ## Manual IAM prerequisite
 

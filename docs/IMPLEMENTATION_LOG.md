@@ -166,3 +166,22 @@ applied 54 foundation resources and 3 services. GitHub runs `34030885146` and
 passed. The automated destroy validated and removed 57 resources, then verified
 empty state, absent runtime resources, no exact-family task definitions, and
 preserved state/IAM/secret/snapshot boundaries.
+
+## 2026-09-06 — Production-readiness controls live-verified
+
+**Implementation:** added an exact-SHA private migration task, disabled concurrent
+production web-startup migrations, added a CloudWatch dashboard and 18 alarms,
+implemented an opt-in `$300` tagged Budget, exact-domain Cloudflare DNS automation,
+a signed SNS-to-Telegram Worker with freshness/KV replay controls, and a semantic
+private RDS restore rehearsal. Production create now resumes exact partial service
+state without planning destructive service removal.
+
+**Verification:** revision `de3ba39d4f953ce8baa6e73167361d2063302a64`
+published images in run `34041754952`, passed the private migration task, reached
+web `2/2`, worker `1/1`, scheduler `1/1`, verified 18 alarms/dashboard and HTTP
+health, semantically restored a probe plus Django migration state, completed
+approved rollout `34043025336`, and returned Terraform detailed exit code `0`.
+The guarded destroy removed 76 resources and returned empty state; the temporary
+restore DB/snapshot/task definitions also read back absent. SNS/Telegram and Budget
+delivery remain blocked by explicit `SNS:CreateTopic` and `budgets:ViewBudget`
+denials plus absent external integration credentials.
