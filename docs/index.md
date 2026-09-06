@@ -1,6 +1,31 @@
-![Status-Page](https://cdn.herrtxbias.net/status-page/logo_gray/logo.svg "Status-Page logo"){style="height: 75px; margin-bottom: 3rem"}
+# Status-Page on AWS
 
-## Getting Started
+[Русская версия](index.ru.md)
 
-* Check out the [installation guide](./installation/index.md) to get your deployment up and running
-* Or the [Docker image](https://github.com/status-page/status-page-docker) (coming soon...)
+This documentation describes a completed DevOps implementation for the Status-Page application. The project provides a local Docker environment and a reproducible AWS lifecycle built with Terraform, ECS Fargate, managed data services and GitHub Actions.
+
+## Start here
+
+- [Architecture](ARCHITECTURE.md) explains the runtime, network and delivery model.
+- [Production lifecycle](PRODUCTION_LIFECYCLE.md) covers create, release, restore and destroy operations.
+- [Technology index](TECHNOLOGY_INDEX.md) maps each tool to its role in the system.
+- [Validation evidence](DELIVERY_EVIDENCE.md) records what was exercised locally and on AWS.
+- [HTTPS scope](HTTPS_LIMITATION.md) documents the demonstration's transport boundary.
+
+## Local environment
+
+```bash
+cp .env.example .env
+make up
+make check
+```
+
+The local stack runs PostgreSQL, Redis, Django/Gunicorn, NGINX, RQ Worker and RQ Scheduler. See [OrbStack development VM](ORBSTACK_DEV.md) for the optional macOS VM workflow.
+
+## AWS lifecycle
+
+```text
+create -> publish -> migrate -> approve -> deploy -> verify -> restore test -> destroy
+```
+
+The lifecycle scripts validate the source revision, AWS account and saved Terraform plan before changing infrastructure.

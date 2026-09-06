@@ -1,12 +1,10 @@
 site_name: Status-Page Documentation
 site_dir: statuspage/project-static/docs
-site_url: https://docs.status-page.dev/
-repo_name: status-page/status-page
-repo_url: https://github.com/status-page/status-page
+repo_name: yinon-mitin/Status-Page
+repo_url: https://github.com/yinon-mitin/Status-Page
 edit_uri: 'edit/main/docs/'
 theme:
   name: material
-  custom_dir: docs/_theme/
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -41,7 +39,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/status-page/status-page
+      link: https://github.com/yinon-mitin/Status-Page
 markdown_extensions:
     - admonition
     - attr_list
@@ -58,26 +56,25 @@ markdown_extensions:
 extra_css:
     - extra.css
 nav:
-    - Introduction: 'index.md'
+    - Introduction:
+        - English: 'index.md'
+        - Русский: 'index.ru.md'
     - Project:
         - OrbStack development VM: 'ORBSTACK_DEV.md'
+        - OrbStack development VM (русский): 'ORBSTACK_DEV.ru.md'
         - Architecture: 'ARCHITECTURE.md'
         - Architecture (русский): 'ARCHITECTURE.ru.md'
         - Delivery evidence: DELIVERY_EVIDENCE.md
+        - Delivery evidence (русский): DELIVERY_EVIDENCE.ru.md
         - Automated production lifecycle: PRODUCTION_LIFECYCLE.md
-        - Production readiness controls: PRODUCTION_READINESS.md
-        - Production integrations: PRODUCTION_INTEGRATIONS.md
+        - Automated production lifecycle (русский): PRODUCTION_LIFECYCLE.ru.md
+        - Optional integrations: PRODUCTION_INTEGRATIONS.md
+        - Optional integrations (русский): PRODUCTION_INTEGRATIONS.ru.md
         - HTTPS limitation: HTTPS_LIMITATION.md
         - Ограничение HTTPS: HTTPS_LIMITATION.ru.md
         - Technology index: 'TECHNOLOGY_INDEX.md'
         - Technology index (русский): 'TECHNOLOGY_INDEX.ru.md'
-        - Milestone audit: 'MILESTONE_AUDIT.md'
-        - Milestone audit (русский): 'MILESTONE_AUDIT.ru.md'
-        - Thursday status: 'THURSDAY_STATUS.md'
-        - Thursday status (русский): 'THURSDAY_STATUS.ru.md'
-        - Implementation log: 'IMPLEMENTATION_LOG.md'
-        - Implementation log (русский): 'IMPLEMENTATION_LOG.ru.md'
-    - Installation:
+    - Upstream application documentation:
         - Install Status-Page: 'installation/index.md'
         - 1. PostgreSQL: 'installation/1-postgresql.md'
         - 2. Redis: 'installation/2-redis.md'

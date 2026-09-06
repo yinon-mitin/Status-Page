@@ -1,5 +1,7 @@
 # OrbStack development VM
 
+[Русская версия](ORBSTACK_DEV.ru.md)
+
 This repository includes a local Cloud-Init bootstrap for an Ubuntu 24.04 ARM64
 VM managed by OrbStack. It exercises Docker, Compose, systemd startup, and
 recovery after a Linux VM restart without requiring Docker Desktop.

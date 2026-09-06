@@ -1,5 +1,7 @@
 # Automated production lifecycle
 
+[Русская версия](PRODUCTION_LIFECYCLE.ru.md)
+
 ## Scope
 
 The production runtime is reproducible after three explicit bootstrap boundaries exist:
@@ -79,7 +81,7 @@ The GitHub Environment approval runs in its own job. The following deploy job ha
 
 GitHub Actions owns post-bootstrap service task-definition revisions. Terraform ignores only the `task_definition` attribute on existing services so a later infrastructure apply cannot silently roll a release back; Terraform still owns service creation, networking, scaling counts, and destruction. The destroy script deregisters and requests deletion of every exact production task-definition family revision created by either owner.
 
-### Training-account migration boundary
+### Migration execution
 
 The immutable GitHub deployer role cannot call `ecs:RunTask`, and IAM cannot be
 changed. The operator lifecycle therefore runs a separate private migration task
@@ -105,20 +107,22 @@ A lifecycle is proven only when one exact revision has all of the following evid
 - static checks and contract tests pass;
 - create plan validation reports no deletes;
 - provider reads show stable ECS services and HTTP 200 health;
-- an approved GitHub run assumes the deployer role and completes entrypoint migration/rollout;
+- a private one-off migration succeeds for the exact image revision;
+- an approved GitHub run assumes the deployer role and completes rollout;
 - destroy plan validation reports deletes only;
 - Terraform state is empty afterward; and
 - protected/manual boundaries still exist.
 
 ## Verified rehearsal
 
-Revision `86d711d7c915d5efa66cb685a25964d7edf57a94` completed the full procedure:
+Revision `de3ba39d4f953ce8baa6e73167361d2063302a64` completed the full procedure:
 
-- image publication: GitHub run `34030885146`;
-- reviewer approval and deployer OIDC rollout: GitHub run `34031224217`;
+- image publication: GitHub run `34041754952`;
+- private migration task: exact revision recorded before deployment;
+- reviewer approval and deployer OIDC rollout: GitHub run `34043025336`;
 - stable services: web `2/2`, worker `1/1`, scheduler `1/1`;
 - provider health: two healthy ALB targets and successful `/healthz`;
+- monitoring: CloudWatch dashboard and 18 alarms passed API read-back;
+- recovery: a temporary private RDS restore contained the exact semantic probe and Django migration history, then cleaned up completely;
 - idempotency: Terraform reported no changes before teardown;
-- destroy: 57 delete actions validated, applied, and followed by empty state and no exact-family task-definition revisions.
-
-The runtime is currently absent and `PRODUCTION_ENABLED=false`.
+- destroy: 76 resources removed, followed by empty state and no exact-family task-definition revisions.

@@ -1,39 +1,40 @@
-name: Feature Request
-description: Suggest an idea for this project
+name: Feature request
+description: Propose a focused improvement to the project
 title: "[Feature]: "
 labels: ["enhancement"]
 assignees: []
 body:
-  - type: markdown
+  - type: dropdown
+    id: area
     attributes:
-      value: |
-        Thanks for taking the time to fill out this feature request!
-  - type: textarea
-    id: feature-context
-    attributes:
-      label: Is your feature request related to a problem? Please describe.
-      description: A clear and concise description of what the problem is.
-      value: I'm always frustrated when [...]
+      label: Area
+      options:
+        - Local Docker environment
+        - AWS and Terraform
+        - GitHub Actions and release automation
+        - Backup and restore
+        - Monitoring and integrations
+        - Documentation
     validations:
       required: true
   - type: textarea
-    id: expected-behaviour
+    id: problem
     attributes:
-      label: Describe the solution you'd like
-      description: A clear and concise description of what you want to happen.
+      label: Problem
+      description: Describe the operational problem this change would solve.
     validations:
       required: true
   - type: textarea
-    id: alternatives
+    id: proposal
     attributes:
-      label: Describe alternatives you've considered
-      description: A clear and concise description of any alternative solutions or features you've considered.
+      label: Proposed change
+      description: Describe the smallest useful change and how it could be verified.
     validations:
       required: true
   - type: textarea
-    id: additional-context
+    id: tradeoffs
     attributes:
-      label: Additional context
-      description: Add any other context or screenshots about the feature request here.
+      label: Trade-offs
+      description: Note expected cost, security, compatibility, or maintenance effects.
     validations:
       required: false

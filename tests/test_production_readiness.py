@@ -188,7 +188,8 @@ class ScopeContracts(unittest.TestCase):
         variables = (ROOT / "terraform" / "environments" / "prod.tfvars.example").read_text()
         limitation = (ROOT / "docs" / "HTTPS_LIMITATION.md").read_text()
         self.assertNotIn("request_acm_certificate = true", variables)
-        self.assertIn("not HTTPS production", limitation)
+        self.assertIn("uses HTTP at the load balancer", limitation)
+        self.assertIn("HTTPS is intentionally outside the implemented scope", limitation)
 
 
 class OneOffTaskDefinitionTests(unittest.TestCase):

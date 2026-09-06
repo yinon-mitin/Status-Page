@@ -1,34 +1,19 @@
-# Ограничение HTTPS и восстановление ACM
+# Область HTTPS
 
-## Текущий статус
+[English version](HTTPS_LIMITATION.md)
 
-Terraform-managed ECS/ALB runtime сейчас уничтожен. При включении
-`http://status.yifilter.uk/` остаётся **HTTP-only demonstration endpoint**, а не
-HTTPS production. ACM certificate и HTTP-to-HTTPS redirect не реализованы.
+AWS-демонстрация использует HTTP на load balancer. HTTPS намеренно не входит в реализованный scope: учебный AWS account не предоставлял нужных ACM permissions.
 
-Причина — не дефект приложения или Terraform. У AWS identity, доступной проекту, нет ACM permissions, нужных для запроса и DNS validation public certificate. Зафиксированный отказ включает `acm-pca:ListCertificateAuthorities`; запрос сертификата также требует соответствующих ACM permissions для public certificate. Граница доступа не обходится, а certificate/private key не попадает в GitHub или Terraform state.
+Это граница deployment, а не изменение архитектуры приложения. Сеть и Terraform сохраняют работу с сертификатом отдельным шагом, поэтому HTTPS можно включить в account с доступом к ACM.
 
-Пока ACM выполняет DNS validation, Cloudflare должен оставаться в режиме **DNS only**. Proxy record может скрыть или изменить validation path и не входит в поддерживаемую процедуру восстановления.
+## Включение HTTPS в другом account
 
-## Нужный AWS-доступ
+1. Запросить ACM certificate в том же AWS Region, где работает ALB.
+2. Добавить ACM DNS validation record в authoritative DNS zone.
+3. Дождаться статуса сертификата `ISSUED`.
+4. Передать ARN сертификата в Terraform.
+5. Создать HTTPS listener и перенаправление HTTP на HTTPS.
+6. Обновить application URL, trusted origins и secure-cookie settings.
+7. Проверить certificate chain, hostname, redirect, health check и login flow.
 
-AWS administrator должен выдать оператору least-privilege policy, достаточную для:
-
-- запроса public ACM certificate для `status.yifilter.uk` в `il-central-1`;
-- чтения статуса certificate и validation records до `ISSUED`;
-- прикрепления выданного certificate к существующему production ALB HTTPS listener;
-- создания или обновления ALB listener и HTTP-to-HTTPS redirect через reviewed Terraform change.
-
-Нужен минимальный scope, который поддерживает AWS, для hostname и существующего ALB. Нельзя выдавать `AdministratorAccess`, импортировать private key или помещать certificate material в repository Variables/Secrets.
-
-## Процедура восстановления
-
-1. Оставить Cloudflare DNS record `status.yifilter.uk` в режиме **DNS only**.
-2. Попросить administrator выдать человеку-оператору ACM/ELBv2 permissions выше. IAM roles остаются manually managed bootstrap boundary: Terraform не управляет IAM roles и policies.
-3. В protected branch сделать reviewed Terraform change: ACM certificate, HTTPS listener на 443 и redirect с 80. Не менять ECS, RDS, Redis и legacy `statuspage-dev-*` resources.
-4. Выполнить `terraform fmt -check -recursive`, `terraform validate`, TFLint при наличии и явный production plan. Убедиться, что план затрагивает только нужные `yinon-status-page-*` ingress/certificate resources.
-5. Применить одобренный план. Точно перенести ACM DNS validation CNAME в Cloudflare DNS; proxy record не включать.
-6. Дождаться статуса ACM `ISSUED`, затем проверить, что certificate прикреплён к ALB HTTPS listener, а HTTP listener делает redirect на HTTPS.
-7. Проверить снаружи: `https://status.yifilter.uk/`, `https://status.yifilter.uk/healthz`, hostname/chain certificate и HTTP redirect. Зафиксировать evidence в `docs/DELIVERY_EVIDENCE.md`.
-
-Пока все семь шагов не завершены, документация и release checks обязаны описывать public endpoint только как HTTP-only.
+Нельзя направлять DNS на HTTPS listener до выпуска и подключения сертификата. Демонстрационный endpoint нельзя называть HTTPS-enabled, пока не проверен весь путь через browser.

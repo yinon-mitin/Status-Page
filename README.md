@@ -1,27 +1,64 @@
 <p align="center"><img src="assets/statuspage-devops-icon.png" width="150" alt="Status-Page DevOps icon"></p>
 
-<h1 align="center">Status-Page DevOps</h1>
+<h1 align="center">Status-Page on AWS</h1>
 
-<p align="center">Production-minded AWS infrastructure for the open-source Status-Page application.</p>
+<p align="center">A reproducible AWS delivery platform for an open-source status page.</p>
 
 <p align="center">
-  <a href="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml"><img src="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml/badge.svg?branch=main" alt="Validate workflow"></a>
+  <a href="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml"><img src="https://github.com/yinon-mitin/Status-Page/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
   <a href="https://github.com/yinon-mitin/Status-Page/blob/main/LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache 2.0 license"></a>
-  <a href="https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1"><img src="https://img.shields.io/badge/upstream-v2.5.1-1f6feb" alt="Upstream v2.5.1"></a>
+  <a href="https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1"><img src="https://img.shields.io/badge/application-Status--Page%202.5.1-1f6feb" alt="Status-Page 2.5.1"></a>
+  <a href="README.ru.md"><img src="https://img.shields.io/badge/docs-Русский-2f81f7" alt="Документация на русском"></a>
 </p>
 
-<p align="center"><a href="#quick-start">Quick start</a> · <a href="#project-status">Status</a> · <a href="#documentation">Documentation</a> · <a href="README.ru.md">Русская версия</a></p>
+## What this project does
 
-> [!WARNING]
-> This is an unofficial educational fork. Upstream Status-Page is archived; this repository pins the auditable release `v2.5.1` and does not claim upstream support.
+This repository turns the archived [Status-Page](https://github.com/Status-Page/Status-Page) application into a complete DevOps project. It runs locally with Docker Compose and can create an isolated AWS environment, publish immutable container images, deploy the application through an approved GitHub Actions release, verify the runtime and database backup, and remove the cloud environment when the demonstration is over.
 
-## Why this repository exists
+The full lifecycle was exercised against AWS in `il-central-1`, including a clean Terraform plan after deployment and a destroy that returned the remote state to zero resources.
 
-This fork demonstrates a practical path from the source-derived Status-Page runtime—Django/Gunicorn, RQ Worker, RQ Scheduler, PostgreSQL, Redis, and NGINX—to an AWS design using ECR, ECS Fargate, ALB, RDS, ElastiCache, Secrets Manager, Terraform, CloudWatch, and GitHub Actions.
+## Components
+
+| Layer | Components | Role in the project |
+| --- | --- | --- |
+| Application | Django, Gunicorn, NGINX | Public status page, administration, API and static assets |
+| Background work | RQ Worker, RQ Scheduler, Redis | Queued and scheduled application jobs |
+| Local runtime | Docker, Docker Compose, PostgreSQL | Complete six-service development environment |
+| Containers | Amazon ECR, immutable Git SHA tags | Reproducible application and NGINX images |
+| Compute | Amazon ECS Fargate | Web, worker and scheduler workloads without EC2 hosts |
+| Data | Amazon RDS PostgreSQL, ElastiCache Redis | Private managed database, cache and queue |
+| Network | VPC, public/private subnets, ALB, VPC endpoints | Public entry point with private application and data tiers |
+| Delivery | GitHub Actions, OIDC, approval gate | Tested image publication and controlled ECS rollout |
+| Operations | Terraform, CloudWatch, lifecycle scripts | Provisioning, monitoring, validation, restore testing and teardown |
+
+## Architecture
+
+```mermaid
+flowchart TB
+  User[Users and API clients] --> ALB[Application Load Balancer]
+  User -. optional hostname .-> DNS[Cloudflare DNS]
+  DNS -.-> ALB
+
+  subgraph AWS[AWS VPC across two Availability Zones]
+    ALB --> Web[ECS Fargate web tasks\nNGINX + Django]
+    Worker[ECS Fargate worker] --> DB[(RDS PostgreSQL)]
+    Scheduler[ECS Fargate scheduler] --> Redis[(ElastiCache Redis)]
+    Web --> DB
+    Web --> Redis
+    Worker --> Redis
+    Web & Worker & Scheduler --> Endpoints[VPC endpoints]
+    Web & Worker & Scheduler --> Logs[CloudWatch]
+  end
+
+  GitHub[GitHub Actions] -->|OIDC| ECR[Amazon ECR]
+  ECR --> Web & Worker & Scheduler
+```
+
+ECS tasks and data services stay in private subnets. The public load balancer spans two Availability Zones, while private VPC endpoints provide access to ECR, S3, Secrets Manager and CloudWatch without a permanent NAT Gateway.
 
 ## Quick start
 
-Prerequisites: Docker Desktop and Docker Compose.
+Requirements: Docker and Docker Compose.
 
 ```bash
 cp .env.example .env
@@ -29,68 +66,58 @@ make up
 make check
 ```
 
-Open [http://localhost:8081](http://localhost:8081). Use `make logs` to inspect services and `make down` to stop them; add `-v` to Docker Compose only when intentionally deleting local data.
+Open [http://localhost:8081](http://localhost:8081). Stop the stack with `make down`.
 
-## Project status
+## Common commands
 
-| Area | Status | Evidence |
-| --- | --- | --- |
-| Local runtime | Complete | Six services run; `/healthz` and homepage return HTTP 200. |
-| Production ECS runtime | Automated lifecycle verified; currently paused | Revision `de3ba39d` completed exact-SHA migration, approved OIDC rollout, health checks, semantic restore, and full destroy; remote state is empty. |
-| ECS roles / task definitions | Manual IAM bootstrap | Roles are created outside Terraform; task definitions consume explicit role ARNs. |
-| Network and data plane | Live cycle verified; currently absent | Guarded scripts created the complete runtime and monitoring plane, then validated and destroyed 76 resources. |
-| ECR publishing and ECS deployment | Verified | Image run `34041754952` and approved deploy run `34043025336` succeeded with distinct manually managed OIDC roles. |
-| Security scanning | Ready | Gitleaks checks complete Git history on pull requests and `main`. |
-| Terraform quality | Ready | `fmt`, `validate`, and recommended TFLint rules run before cloud planning. |
+| Command | Purpose |
+| --- | --- |
+| `make up` | Build and start the local stack |
+| `make check` | Check HTTP, static assets, Django and the job queue |
+| `make test` | Run the application test suite |
+| `make docs` | Build the documentation in strict mode |
+| `make verify` | Run the complete local quality gate |
+| `scripts/production_create.sh` | Create and verify the AWS environment |
+| `scripts/production_release.sh` | Run the approved release for an immutable revision |
+| `scripts/production_backup_restore_test.sh` | Restore a snapshot and verify database contents |
+| `scripts/production_destroy.sh` | Remove the Terraform-managed AWS environment |
+
+Production commands are guarded by exact account, branch, source-tree and Terraform-plan checks. Copy `terraform/environments/prod.tfvars.example` to the ignored private configuration file before using them.
+
+## Reproducibility
+
+The project pins its application baseline, container architecture and GitHub Actions. Terraform plans are saved and validated before apply or destroy. Releases use commit-addressed images, and database migrations run as a separate one-off task before service rollout. The tested teardown keeps only the explicitly bootstrapped recovery resources outside the runtime lifecycle.
 
 ## Documentation
 
-| Topic | English | Russian |
+| Topic | English | Русский |
 | --- | --- | --- |
-| AWS architecture | [AWS architecture — English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.md) | [AWS architecture — Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/ARCHITECTURE.ru.md) |
-| Technology index | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/TECHNOLOGY_INDEX.ru.md) |
-| Infrastructure overview | [HTML page](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PROJECT_INFRASTRUCTURE.html) | — |
-| Delivery evidence & release gates | [Evidence matrix and demonstration checklist](https://github.com/yinon-mitin/Status-Page/blob/main/docs/DELIVERY_EVIDENCE.md) | — |
-| Automated production lifecycle | [Create, release, verify, and destroy](https://github.com/yinon-mitin/Status-Page/blob/main/docs/PRODUCTION_LIFECYCLE.md) | — |
-| Milestone audit | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/MILESTONE_AUDIT.ru.md) |
-| Implementation log | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/IMPLEMENTATION_LOG.ru.md) |
-| Thursday AWS status | [English](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.md) | [Russian](https://github.com/yinon-mitin/Status-Page/blob/main/docs/THURSDAY_STATUS.ru.md) |
-| Terraform baseline | [README](https://github.com/yinon-mitin/Status-Page/blob/main/terraform/README.md) | — |
+| Architecture | [Architecture](docs/ARCHITECTURE.md) | [Архитектура](docs/ARCHITECTURE.ru.md) |
+| Production lifecycle | [Create, release, restore and destroy](docs/PRODUCTION_LIFECYCLE.md) | [Создание, релиз, восстановление и удаление](docs/PRODUCTION_LIFECYCLE.ru.md) |
+| Technology map | [Technology index](docs/TECHNOLOGY_INDEX.md) | [Карта технологий](docs/TECHNOLOGY_INDEX.ru.md) |
+| Optional integrations | [External integrations](docs/PRODUCTION_INTEGRATIONS.md) | [Внешние интеграции](docs/PRODUCTION_INTEGRATIONS.ru.md) |
+| Verified delivery | [Validation evidence](docs/DELIVERY_EVIDENCE.md) | [Подтверждение реализации](docs/DELIVERY_EVIDENCE.ru.md) |
+| Visual overview | [Bilingual architecture overview](docs/PROJECT_INFRASTRUCTURE.html) | English and Russian notes |
+| Security reporting | [Security policy](SECURITY.md) | [Политика безопасности](SECURITY.ru.md) |
+| Source provenance | [Upstream policy](UPSTREAM.md) | [Политика upstream](UPSTREAM.ru.md) |
 
-See [CHANGELOG.md](CHANGELOG.md) for notable changes and [UPSTREAM.md](UPSTREAM.md) for source policy.
-
-### IAM boundary
-
-The production ECS roles `yinon-status-page-prod-ecs-execution` and
-`yinon-status-page-prod-ecs-task` are manually managed bootstrap resources.
-Terraform does not create, update, attach, detach, or delete IAM roles or
-policies; their ARNs are supplied through private Terraform variables. The
-legacy `statuspage-dev` resources and `yinon-status-page-iam-smoke-20260828`
-role are not reused or modified.
-
-Production Terraform state is isolated in an encrypted, versioned, public-blocked
-S3 bucket with native S3 lockfiles. The state is currently empty after the
-reviewed teardown. Exact-domain Cloudflare automation updates only
-`status.yifilter.uk` after each ALB
-recreation; `10.42.0.0/16` is private VPC address space and must never be used
-as a public DNS target.
-
-## Repository layout
+## Repository map
 
 ```text
-assets/              Project icon and visual assets
-docker/              Entrypoint scripts and NGINX configuration
-docs/                Architecture, audits, and implementation logs
-terraform/           AWS ECR, ECS, and guarded network infrastructure
-.github/workflows/   Validation and OIDC-based ECR publishing
-statuspage/          Django source from upstream v2.5.1
+.github/workflows/   CI, security scanning and OIDC release workflow
+docker/              Container startup and NGINX configuration
+docs/                Architecture, lifecycle and operations documentation
+infra/               Local VM bootstrap configuration
+integrations/        Optional alert relay integration
+scripts/             Validation and production lifecycle automation
+statuspage/          Pinned Status-Page application source
+terraform/           AWS network, data, compute and monitoring resources
 ```
 
-## Safety and licence
+## Contributors
 
-- No secret values are committed; runtime secrets are designed for Secrets Manager.
-- ALB is designed for public subnets; ECS tasks remain internal.
-- RDS is private (`publicly_accessible = false`) and accepts PostgreSQL traffic only from the ECS security group.
-- When deployed, `status.yifilter.uk` is an HTTP-only demonstration endpoint. The runtime is currently destroyed, and the AWS operator still lacks ACM permissions. See [`docs/HTTPS_LIMITATION.md`](docs/HTTPS_LIMITATION.md).
-- Production-minded controls now include a separate migration gate, CloudWatch dashboard/alarms, an opt-in project-scoped `$300` AWS Budget, secure SNS-to-Telegram relay code, and a semantic private RDS restore rehearsal. Budget/SNS delivery remain permission-gated in the training account. See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md); live proof is recorded separately from implementation.
-- This fork preserves the upstream [Apache-2.0 licence](LICENSE.txt), source history, and `upstream-v2.5.1` tag.
+Project ownership and verified AI assistance are listed in [CONTRIBUTORS.md](CONTRIBUTORS.md).
+
+## License and provenance
+
+The application source is based on Status-Page `v2.5.1` and retains its Apache-2.0 license and upstream history. This repository is an independent educational DevOps implementation; see [UPSTREAM.md](UPSTREAM.md) for the source and maintenance policy.

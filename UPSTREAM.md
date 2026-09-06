@@ -1,5 +1,7 @@
 # Upstream provenance and maintenance policy
 
+[Русская версия](UPSTREAM.ru.md)
+
 This repository is an unofficial educational DevOps fork of [Status-Page](https://github.com/Status-Page/Status-Page), based on the upstream release tag [`v2.5.1`](https://github.com/Status-Page/Status-Page/releases/tag/v2.5.1).
 
 The original project was archived in October 2025 and its announced security-support period ended on 31 December 2025. This project therefore pins the application to `v2.5.1`; it does not represent an actively maintained upstream service.

@@ -1,96 +1,72 @@
-# Production integrations
+# Optional external integrations
 
-No credential value belongs in Git, Terraform state, GitHub Variables, command-line
-arguments, or documentation.
+[Русская версия](PRODUCTION_INTEGRATIONS.ru.md)
 
-## Required credentials
+The core AWS lifecycle does not depend on these integrations. They add a stable public DNS name and Telegram delivery for AWS alerts when the required provider credentials and AWS notification topic are available.
 
-Create `~/.config/status-page/integrations.env` and set mode `0600`:
+## Private configuration
+
+Create `~/.config/status-page/integrations.env` with mode `0600`:
 
 ```text
 CLOUDFLARE_DNS_API_TOKEN=REDACTED
 CLOUDFLARE_WORKERS_API_TOKEN=REDACTED
-CLOUDFLARE_ZONE_ID=32_HEX_CHARACTERS
-CLOUDFLARE_ACCOUNT_ID=32_HEX_CHARACTERS
+CLOUDFLARE_ZONE_ID=REDACTED
+CLOUDFLARE_ACCOUNT_ID=REDACTED
 TELEGRAM_BOT_TOKEN=REDACTED
 TELEGRAM_CHAT_ID=REDACTED
 ```
 
-For least privilege, use two Cloudflare tokens:
+Use separate Cloudflare tokens:
 
-1. **DNS token:** `Zone / DNS / Edit`, restricted to zone `yifilter.uk`.
-2. **Worker token:** `Account / Workers Scripts / Edit` and
-   `Account / Workers KV Storage / Edit`, restricted to the selected Cloudflare
-   account. KV stores processed SNS message IDs for bounded replay suppression.
+- DNS token: `Zone / DNS / Edit`, restricted to `yifilter.uk`;
+- Worker token: `Workers Scripts / Edit` and `Workers KV Storage / Edit`, restricted to the selected account.
 
-A single `CLOUDFLARE_API_TOKEN` is accepted for compatibility, but separate tokens
-have a smaller blast radius. Zone ID and Account ID are shown in the Cloudflare
-`yifilter.uk` dashboard Overview.
+A zone-scoped DNS token can technically edit other records in that zone. The updater enforces the exact `status.yifilter.uk` record in code; provider-enforced record isolation would require delegating that hostname as a separate zone.
 
-Create the Telegram bot through `@BotFather` with `/newbot`, send `/start` to the
-new bot, then retrieve the target chat ID from the Telegram `getUpdates` response.
-Do not paste the bot token or response into an issue, pull request, or chat.
+## DNS update
 
-```bash
-chmod 600 ~/.config/status-page/integrations.env
+`production_create.sh` calls the updater after the ALB exists. The script accepts only:
+
+```text
+CNAME status.yifilter.uk
+  -> yinon-status-page-prod-alb-*.il-central-1.elb.amazonaws.com
+proxied=false
 ```
 
-## Deploy the alert relay
+It rejects other names and target classes, then reads the record back from Cloudflare.
 
-```bash
-python3 scripts/deploy_alert_relay.py
-```
-
-The deployer uploads the fixed Worker module with secret bindings, reads back the
-required binding names, probes the Worker health endpoint, and writes only the
-non-secret `ALERT_RELAY_URL` back to the private credentials file.
-
-The next production Terraform apply reads only `ALERT_RELAY_URL` and creates the
-SNS HTTPS subscription when an approved SNS topic is available. The Worker
-automatically handles the signed SNS subscription confirmation.
-
-The training operator currently receives `AccessDenied` for `SNS:CreateTopic`.
-An account administrator must therefore create exactly
-`yinon-status-page-prod-alerts` in `il-central-1`, attach the scoped policy described
-in `terraform/monitoring.tf`, and provide its ARN as `external_alert_topic_arn`.
-Do not grant broad SNS administration merely for the demo.
-
-## DNS lifecycle
-
-During production creation, the exact-domain updater runs automatically after the
-ALB is created. It updates only `status.yifilter.uk`, keeps Cloudflare proxying off,
-and verifies the resulting CNAME by API read-back.
-
-Manual verification without changing another name:
+Manual invocation:
 
 ```bash
 ALB_DNS="$(AWS_PROFILE=status-page terraform -chdir=terraform output -raw alb_dns_name)"
 python3 scripts/update_cloudflare_dns.py --target "$ALB_DNS"
 ```
 
-Cloudflare DNS is external to the AWS Terraform state and therefore remains after
-AWS destroy. A parked CNAME to a deleted ALB is expected until the next create or
-explicit DNS removal. The automation deliberately has no delete operation.
+## Telegram alert relay
 
-## End-to-end Telegram test
+AWS alarms publish to the exact project SNS topic. A Cloudflare Worker verifies the SNS signature, topic ARN and timestamp, suppresses repeated message IDs through Cloudflare KV, and sends the message to Telegram.
 
-After the SNS subscription is `Confirmed`:
+Deploy the Worker after creating the private configuration:
 
-1. select one project alarm;
-2. temporarily set its state through the CloudWatch `SetAlarmState` API;
-3. verify one Telegram alert arrives;
-4. return the alarm to `OK` and verify recovery delivery;
-5. read back the alarm and subscription state.
+```bash
+python3 scripts/deploy_alert_relay.py
+```
 
-Synthetic state changes are evidence of the notification path, not evidence that a
-real service failure occurred. The live rehearsal log must record this distinction.
+The deployment creates or reuses the fixed KV namespace, uploads the Worker with secret bindings, enables its `workers.dev` endpoint, checks the bindings and health endpoint, and stores only the non-secret relay URL in the private configuration file.
 
-## Rotation and revocation
+Configure Terraform with the exact SNS topic ARN and relay endpoint. The SNS topic policy must allow only project CloudWatch alarms and the project Budget from the same AWS account.
 
-- Rotate the Telegram bot token through `@BotFather`, update the private file, and
-  redeploy the Worker.
-- Revoke either Cloudflare token independently after the demo if ongoing automation
-  is unnecessary.
-- Deleting the Worker breaks notification delivery but does not affect AWS runtime.
-- Deleting the SNS subscription stops Telegram delivery but alarms remain visible in
-  CloudWatch.
+## Verification
+
+After Terraform confirms the HTTPS subscription, run the synthetic notification-path test:
+
+```bash
+CONFIRM_SYNTHETIC_ALERT_TEST=yinon-status-page-prod-alb-target-5xx \
+AWS_PROFILE=status-page \
+scripts/test_production_alert.sh
+```
+
+The test moves one alarm to `ALARM`, returns it to `OK`, and verifies the final state. Confirm both messages in Telegram. Synthetic state changes prove delivery, not a real service failure.
+
+Cloudflare KV is eventually consistent, so replay suppression is bounded rather than exactly-once delivery.
