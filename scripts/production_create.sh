@@ -28,6 +28,14 @@ trap pause_on_error ERR
 
 IMAGE_TAG="sha-$sha" CREATE_SERVICES=false "$ROOT/scripts/production_apply.sh"
 alb_dns="$(AWS_PROFILE="${AWS_PROFILE:-status-page}" terraform -chdir="$ROOT/terraform" output -raw alb_dns_name)"
+gh variable set AWS_ACCOUNT_ID --repo "$REPOSITORY" --body 992382545251
+gh variable set AWS_REGION --repo "$REPOSITORY" --body il-central-1
+gh variable set ECR_APP_REPOSITORY --repo "$REPOSITORY" --body yinon-status-page-prod-app
+gh variable set ECR_NGINX_REPOSITORY --repo "$REPOSITORY" --body yinon-status-page-prod-nginx
+gh variable set ECS_CLUSTER --repo "$REPOSITORY" --body yinon-status-page-prod
+gh variable set ECS_WEB_SERVICE --repo "$REPOSITORY" --body web
+gh variable set ECS_WORKER_SERVICE --repo "$REPOSITORY" --body worker
+gh variable set ECS_SCHEDULER_SERVICE --repo "$REPOSITORY" --body scheduler
 gh variable set PUBLIC_HEALTHCHECK_URL --repo "$REPOSITORY" --body "http://$alb_dns/healthz"
 gh variable set PRODUCTION_ENABLED --repo "$REPOSITORY" --body true
 

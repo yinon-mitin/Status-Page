@@ -216,6 +216,21 @@ class TerraformLifecycleContractTests(unittest.TestCase):
         deploy = ROOT / "scripts" / "deploy_ecs_release.sh"
         self.assertTrue(deploy.stat().st_mode & stat.S_IXUSR, str(deploy))
 
+    def test_create_sets_all_non_secret_release_identifiers(self):
+        create = (ROOT / "scripts" / "production_create.sh").read_text()
+        for variable in (
+            "AWS_ACCOUNT_ID",
+            "AWS_REGION",
+            "ECR_APP_REPOSITORY",
+            "ECR_NGINX_REPOSITORY",
+            "ECS_CLUSTER",
+            "ECS_WEB_SERVICE",
+            "ECS_WORKER_SERVICE",
+            "ECS_SCHEDULER_SERVICE",
+            "PUBLIC_HEALTHCHECK_URL",
+        ):
+            self.assertIn(f"gh variable set {variable}", create)
+
     def test_destroy_cleans_workflow_registered_task_definition_revisions(self):
         destroy = (ROOT / "scripts" / "production_destroy.sh").read_text()
         self.assertIn("list-task-definitions", destroy)
