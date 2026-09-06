@@ -133,4 +133,4 @@ Restore rehearsal записывает уникальный probe в PostgreSQL,
 - [Карта технологий](TECHNOLOGY_INDEX.ru.md)
 - [Подтверждение реализации](DELIVERY_EVIDENCE.ru.md)
 - [HTTPS scope](HTTPS_LIMITATION.ru.md)
-- [Происхождение upstream](../UPSTREAM.ru.md)
+- [Происхождение upstream](https://github.com/yinon-mitin/Status-Page/blob/main/UPSTREAM.ru.md)

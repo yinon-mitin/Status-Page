@@ -133,4 +133,4 @@ The restore rehearsal writes a unique probe to PostgreSQL, creates a snapshot, r
 - [Technology index](TECHNOLOGY_INDEX.md)
 - [Validation evidence](DELIVERY_EVIDENCE.md)
 - [HTTPS scope](HTTPS_LIMITATION.md)
-- [Upstream provenance](../UPSTREAM.md)
+- [Upstream provenance](https://github.com/yinon-mitin/Status-Page/blob/main/UPSTREAM.md)
