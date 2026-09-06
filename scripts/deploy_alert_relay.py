@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 
 API_BASE = "https://api.cloudflare.com/client/v4"
 SCRIPT_NAME = "status-page-alert-relay"
+KV_NAMESPACE_TITLE = "status-page-alert-relay-dedup"
 TOPIC_ARN = "arn:aws:sns:il-central-1:992382545251:yinon-status-page-prod-alerts"
 KNOWN_KEYS = {
     "CLOUDFLARE_API_TOKEN",
@@ -145,10 +146,46 @@ def main() -> int:
         if not args.worker_module.is_file():
             raise FileNotFoundError("Cloudflare Worker module is missing")
 
+        namespaces = api_request(
+            token,
+            "GET",
+            f"/accounts/{account_id}/storage/kv/namespaces?per_page=100",
+        )
+        matching_namespaces = [
+            namespace
+            for namespace in namespaces
+            if isinstance(namespace, dict) and namespace.get("title") == KV_NAMESPACE_TITLE
+        ]
+        if len(matching_namespaces) > 1:
+            raise RuntimeError("Multiple deduplication KV namespaces have the fixed title")
+        if matching_namespaces:
+            namespace_id = matching_namespaces[0].get("id")
+        else:
+            created_namespace = api_request(
+                token,
+                "POST",
+                f"/accounts/{account_id}/storage/kv/namespaces",
+                json.dumps({"title": KV_NAMESPACE_TITLE}).encode(),
+            )
+            namespace_id = (
+                created_namespace.get("id")
+                if isinstance(created_namespace, dict)
+                else None
+            )
+        if not isinstance(namespace_id, str) or not re.fullmatch(
+            r"[a-f0-9]{32}", namespace_id
+        ):
+            raise RuntimeError("Cloudflare did not return a valid deduplication KV namespace ID")
+
         metadata = {
             "main_module": "worker.mjs",
             "compatibility_date": "2025-01-01",
             "bindings": [
+                {
+                    "type": "kv_namespace",
+                    "name": "SNS_DEDUP",
+                    "namespace_id": namespace_id,
+                },
                 {"type": "secret_text", "name": "SNS_TOPIC_ARN", "text": TOPIC_ARN},
                 {
                     "type": "secret_text",
@@ -186,7 +223,12 @@ def main() -> int:
             for binding in settings.get("bindings", [])
             if isinstance(binding, dict)
         }
-        required = {"SNS_TOPIC_ARN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"}
+        required = {
+            "SNS_DEDUP",
+            "SNS_TOPIC_ARN",
+            "TELEGRAM_BOT_TOKEN",
+            "TELEGRAM_CHAT_ID",
+        }
         if not required.issubset(binding_names):
             raise RuntimeError("Worker settings read-back is missing required bindings")
         subdomain = api_request(token, "GET", f"/accounts/{account_id}/workers/subdomain")

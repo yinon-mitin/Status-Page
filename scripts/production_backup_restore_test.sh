@@ -179,6 +179,8 @@ AWS_PROFILE="$AWS_PROFILE" aws rds wait db-instance-deleted --region "$AWS_REGIO
 restore_created=false
 AWS_PROFILE="$AWS_PROFILE" aws rds delete-db-snapshot --region "$AWS_REGION" \
   --db-snapshot-identifier "$snapshot_id" >/dev/null
+AWS_PROFILE="$AWS_PROFILE" aws rds wait db-snapshot-deleted --region "$AWS_REGION" \
+  --db-snapshot-identifier "$snapshot_id"
 snapshot_created=false
 
 if AWS_PROFILE="$AWS_PROFILE" aws rds describe-db-instances --region "$AWS_REGION" \

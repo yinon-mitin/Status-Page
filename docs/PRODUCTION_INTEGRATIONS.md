@@ -19,8 +19,9 @@ TELEGRAM_CHAT_ID=REDACTED
 For least privilege, use two Cloudflare tokens:
 
 1. **DNS token:** `Zone / DNS / Edit`, restricted to zone `yifilter.uk`.
-2. **Worker token:** `Account / Workers Scripts / Edit`, restricted to the selected
-   Cloudflare account.
+2. **Worker token:** `Account / Workers Scripts / Edit` and
+   `Account / Workers KV Storage / Edit`, restricted to the selected Cloudflare
+   account. KV stores processed SNS message IDs for bounded replay suppression.
 
 A single `CLOUDFLARE_API_TOKEN` is accepted for compatibility, but separate tokens
 have a smaller blast radius. Zone ID and Account ID are shown in the Cloudflare

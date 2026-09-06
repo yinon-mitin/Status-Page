@@ -26,6 +26,8 @@ class AwsMonitoringContracts(unittest.TestCase):
         self.assertIn('limit_amount = "300"', monitoring)
         self.assertIn("subscriber_sns_topic_arns", monitoring)
         self.assertIn("budgets.amazonaws.com", monitoring)
+        self.assertNotIn("metrics = flatten([", monitoring)
+        self.assertIn("setproduct", monitoring)
         self.assertIn('variable "create_alert_topic"', variables)
         self.assertIn('variable "enable_aws_budget"', variables)
         self.assertIn("count = var.enable_monitoring && var.create_alert_topic", monitoring)
@@ -169,10 +171,13 @@ class CloudflareContracts(unittest.TestCase):
             "SubscriptionConfirmation",
             "TELEGRAM_BOT_TOKEN",
             "TELEGRAM_CHAT_ID",
+            "SNS_DEDUP",
+            "expirationTtl",
         ):
             self.assertIn(token, worker)
         deployer = (ROOT / "scripts" / "deploy_alert_relay.py").read_text()
         self.assertIn('workers/scripts/{SCRIPT_NAME}/subdomain', deployer)
+        self.assertIn("storage/kv/namespaces", deployer)
 
 
 class ScopeContracts(unittest.TestCase):

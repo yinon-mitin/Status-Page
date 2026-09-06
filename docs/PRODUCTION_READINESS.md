@@ -104,6 +104,8 @@ The Worker:
 - accepts only the exact production SNS Topic ARN;
 - validates the AWS SNS signing certificate URL;
 - verifies the SNS RSA signature before acting;
+- rejects messages outside a five-minute freshness window and stores successful
+  `MessageId` values in a one-hour Cloudflare KV replay-suppression window;
 - confirms SNS subscriptions only after verification;
 - stores Telegram token/chat ID as secret Worker bindings;
 - exposes no token in Terraform, Git, logs, or alert payloads.

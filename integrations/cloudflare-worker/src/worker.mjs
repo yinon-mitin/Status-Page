@@ -90,6 +90,14 @@ export function canonicalMessage(message) {
     .join("");
 }
 
+export function validateTimestamp(timestamp, now = Date.now()) {
+  const parsed = Date.parse(timestamp);
+  if (!Number.isFinite(parsed)) throw new Error("Invalid SNS timestamp");
+  if (parsed < now - 5 * 60 * 1000 || parsed > now + 60 * 1000) {
+    throw new Error("SNS message is outside the freshness window");
+  }
+}
+
 async function verifySnsMessage(message) {
   if (!SNS_TYPES.has(message.Type)) throw new Error("Unsupported SNS message type");
   if (!["1", "2"].includes(message.SignatureVersion)) {
@@ -122,7 +130,7 @@ async function verifySnsMessage(message) {
 }
 
 function validateEnvironment(env) {
-  for (const name of ["SNS_TOPIC_ARN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]) {
+  for (const name of ["SNS_TOPIC_ARN", "SNS_DEDUP", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]) {
     if (!env[name]) throw new Error(`Missing Worker binding: ${name}`);
   }
   if (!/^arn:aws:sns:il-central-1:992382545251:yinon-status-page-prod-alerts$/.test(env.SNS_TOPIC_ARN)) {
@@ -166,6 +174,10 @@ export default {
       const message = await request.json();
       if (message.TopicArn !== env.SNS_TOPIC_ARN) throw new Error("Unexpected SNS topic");
       if (!(await verifySnsMessage(message))) throw new Error("Invalid SNS signature");
+      validateTimestamp(message.Timestamp);
+      if (!message.MessageId || (await env.SNS_DEDUP.get(message.MessageId))) {
+        return new Response("ok");
+      }
 
       if (message.Type === "SubscriptionConfirmation") {
         const subscribeUrl = validateAwsSnsUrl(message.SubscribeURL);
@@ -174,6 +186,7 @@ export default {
       } else if (message.Type === "Notification") {
         await sendTelegram(message, env);
       }
+      await env.SNS_DEDUP.put(message.MessageId, "processed", { expirationTtl: 3600 });
       return new Response("ok");
     } catch (_error) {
       return new Response("Unauthorized", { status: 401 });
