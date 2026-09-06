@@ -29,9 +29,6 @@
             <div class="orbit orbit-one"></div>
             <div class="orbit orbit-two"></div>
             <img src="assets/statuspage-devops-icon.png" alt="">
-            <span class="mark-label label-top">DECLARE</span>
-            <span class="mark-label label-right">DELIVER</span>
-            <span class="mark-label label-bottom">VERIFY</span>
           </div>
         </div>
         <div class="tech-ribbon" aria-label="Core technologies">
@@ -197,7 +194,7 @@
               <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".22"/></filter>
             </defs>
             <rect class="vpc-boundary" x="350" y="42" width="1380" height="620" rx="24"/>
-            <text class="boundary-title" x="382" y="80">AWS VPC · TWO AVAILABILITY ZONES</text>
+            <text class="boundary-title" x="382" y="80">AWS VPC · SUBNETS IN AZ A + AZ B</text>
             <rect class="zone public-zone" x="390" y="104" width="300" height="502" rx="18"/>
             <rect class="zone app-zone" x="730" y="104" width="520" height="502" rx="18"/>
             <rect class="zone data-zone" x="1290" y="104" width="400" height="502" rx="18"/>
@@ -205,32 +202,31 @@
             <text class="zone-title" x="760" y="143">PRIVATE APPLICATION SUBNETS</text>
             <text class="zone-title" x="1320" y="143">PRIVATE DATA SUBNETS</text>
 
-            <path class="connector main" d="M180 225 H430" marker-end="url(#arrowAccent)"/>
-            <path class="connector main" d="M650 225 H795" marker-end="url(#arrowAccent)"/>
+            <path class="connector main" d="M220 225 H405" marker-end="url(#arrowAccent)"/>
+            <path class="connector main" d="M685 225 H795" marker-end="url(#arrowAccent)"/>
             <path class="connector main" d="M1095 225 H1360" marker-end="url(#arrowAccent)"/>
             <path class="connector" d="M1095 235 C1210 235 1210 400 1360 400" marker-end="url(#arrow)"/>
             <path class="connector" d="M1095 375 H1360" marker-end="url(#arrow)"/>
             <path class="connector" d="M1095 365 C1200 365 1218 250 1360 225" marker-end="url(#arrow)"/>
             <path class="connector" d="M1095 520 C1210 520 1210 400 1360 400" marker-end="url(#arrow)"/>
-            <path class="connector delivery" d="M180 500 H430" marker-end="url(#arrowAccent)"/>
-            <path class="connector delivery" d="M650 500 H745" marker-end="url(#arrowAccent)"/>
-            <path class="connector dashed" d="M1088 540 C1180 585 1220 610 1365 570" marker-end="url(#arrow)"/>
-            <path class="connector dashed" d="M1000 270 V610 H790" marker-end="url(#arrow)"/>
+            <path class="connector delivery" d="M220 500 H405" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery" d="M685 500 H745" marker-end="url(#arrowAccent)"/>
 
-            <g class="node external" transform="translate(20 168)" filter="url(#shadow)"><rect width="160" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><path d="M29 64c3-14 20-14 23 0M40 41a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/><text x="78" y="46">USER</text><text class="node-sub" x="78" y="73">HTTP request</text></g>
-            <g class="node public" transform="translate(430 168)" filter="url(#shadow)"><rect width="220" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ALB</text><text x="82" y="42">Load balancer</text><text class="node-sub" x="82" y="70">Internet-facing · 2 AZs</text></g>
-            <g class="node application primary" transform="translate(795 168)" filter="url(#shadow)"><rect width="300" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">WEB</text><text x="86" y="42">ECS Fargate · Web</text><text class="node-sub" x="86" y="70">2 tasks · NGINX + Django</text></g>
+
+            <g class="node external" transform="translate(20 168)" filter="url(#shadow)"><rect width="200" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><path d="M29 64c3-14 20-14 23 0M40 41a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/><text x="78" y="46">USER</text><text class="node-sub" x="78" y="73">HTTP request</text></g>
+            <g class="node public" transform="translate(405 168)" filter="url(#shadow)"><rect width="280" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ALB</text><text x="78" y="42">Load balancer</text><text class="node-sub" x="78" y="70">Internet-facing · 2 AZs</text></g>
+            <g class="node application primary" transform="translate(795 168)" filter="url(#shadow)"><rect width="300" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">WEB</text><text x="86" y="42">ECS Fargate · Web</text><text class="node-sub" x="86" y="70">2 tasks · 2 private subnets</text></g>
             <g class="node application" transform="translate(795 322)" filter="url(#shadow)"><rect width="300" height="106" rx="16"/><circle cx="44" cy="41" r="22"/><text class="node-code" x="44" y="48">W</text><text x="86" y="40">RQ Worker</text><text class="node-sub" x="86" y="68">1 task · async jobs</text></g>
             <g class="node application" transform="translate(795 472)" filter="url(#shadow)"><rect width="300" height="96" rx="16"/><circle cx="44" cy="38" r="22"/><text class="node-code" x="44" y="45">S</text><text x="86" y="38">RQ Scheduler</text><text class="node-sub" x="86" y="65">1 task · periodic jobs</text></g>
-            <g class="node data" transform="translate(1360 168)" filter="url(#shadow)"><rect width="270" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">DB</text><text x="86" y="42">RDS PostgreSQL</text><text class="node-sub" x="86" y="70">Private · encrypted</text></g>
-            <g class="node data" transform="translate(1360 345)" filter="url(#shadow)"><rect width="270" height="108" rx="16"/><circle cx="44" cy="41" r="23"/><text class="node-code" x="44" y="48">R</text><text x="86" y="40">ElastiCache Redis</text><text class="node-sub" x="86" y="68">Queue + cache</text></g>
-            <g class="node ops" transform="translate(20 443)" filter="url(#shadow)"><rect width="160" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><text class="node-code" x="40" y="50">GH</text><text x="78" y="43">GitHub</text><text class="node-sub" x="78" y="70">Actions · OIDC</text></g>
-            <g class="node ops" transform="translate(430 443)" filter="url(#shadow)"><rect width="220" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ECR</text><text x="82" y="42">Immutable images</text><text class="node-sub" x="82" y="70">sha-&lt;commit&gt;</text></g>
-            <g class="node support" transform="translate(760 598)"><rect width="280" height="56" rx="13"/><text x="140" y="35">VPC endpoints · no baseline NAT</text></g>
-            <g class="node support" transform="translate(1360 535)"><rect width="270" height="74" rx="13"/><text x="135" y="30">CloudWatch</text><text class="node-sub center" x="135" y="54">logs · dashboard · alarms</text></g>
+            <g class="node data" transform="translate(1360 168)" filter="url(#shadow)"><rect width="300" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">DB</text><text x="86" y="42">RDS PostgreSQL</text><text class="node-sub" x="86" y="70">Private · encrypted</text></g>
+            <g class="node data" transform="translate(1360 345)" filter="url(#shadow)"><rect width="300" height="108" rx="16"/><circle cx="44" cy="41" r="23"/><text class="node-code" x="44" y="48">R</text><text x="86" y="40">ElastiCache Redis</text><text class="node-sub" x="86" y="68">Queue + cache</text></g>
+            <g class="node ops" transform="translate(20 443)" filter="url(#shadow)"><rect width="200" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><text class="node-code" x="40" y="50">GH</text><text x="78" y="43">GitHub</text><text class="node-sub" x="78" y="70">Actions · OIDC</text></g>
+            <g class="node ops" transform="translate(405 443)" filter="url(#shadow)"><rect width="280" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ECR</text><text x="80" y="42">Immutable images</text><text class="node-sub" x="80" y="70">sha-&lt;commit&gt;</text></g>
+            <g class="node support" transform="translate(755 585)"><rect width="350" height="70" rx="13"/><text x="175" y="29">VPC endpoints</text><text class="node-sub center" x="175" y="53">all tasks · no baseline NAT</text></g>
+            <g class="node support" transform="translate(1340 535)"><rect width="310" height="74" rx="13"/><text x="155" y="30">CloudWatch</text><text class="node-sub center" x="155" y="54">all tasks · logs · metrics</text></g>
             <text class="oidc-label" x="255" y="484">OIDC</text>
-            <image href="assets/logos/cloudflare-original.svg" x="218" y="181" width="30" height="30"/>
-            <text class="request-label" x="258" y="201">OPTIONAL DNS</text>
+            <image href="assets/logos/cloudflare-original.svg" x="250" y="181" width="30" height="30"/>
+            <text class="request-label" x="288" y="201">OPTIONAL DNS</text>
           </svg>
         </div>
         <div class="architecture-note"><b>Public surface:</b> only the ALB. <b>Compute and data:</b> private. <b>AWS API access:</b> VPC endpoints. <b>State:</b> managed outside containers.</div>
@@ -298,14 +294,14 @@
             <div class="state-chip"><span>S3 remote state · bootstrap</span><strong>configured encrypted · versioned · native lockfile</strong></div>
           </div>
         </div>
-        <div class="guard-row"><span>Every mutating path checks</span><b>account</b><b>clean exact source</b><b>private variables</b><b>plan shape</b></div>
+        <div class="guard-row"><span>Terraform create/destroy paths check</span><b>account</b><b>clean exact source</b><b>private inputs</b><b>saved-plan shape</b></div>
         <aside class="speaker-notes">
           <h3>What to say</h3>
           <ul>
             <li>Terraform makes the architecture declarative, reviewable and repeatable.</li>
             <li>The state is stored in an encrypted, versioned S3 backend with lockfiles.</li>
             <li>The scripts do not blindly apply. They save a plan, convert it to JSON and validate allowed actions and resources.</li>
-            <li>Create rejects deletions; destroy accepts only a reviewed delete-only shape after a narrow preparation phase.</li>
+            <li>Create rejects standalone destroys but allows guarded ECS task-definition replacements; destroy accepts a reviewed delete-only shape after narrow preparation.</li>
             <li>Some bootstrap boundaries remain manual because the training account did not allow this project to manage IAM.</li>
           </ul>
           <h4>Transition</h4><p>Those bootstrap boundaries also define how humans and automation authenticate to AWS.</p>
@@ -333,7 +329,7 @@
             <i>→</i>
             <div class="identity-node credential"><span>OIDC</span><strong>Temporary identity</strong><small>no stored AWS keys</small></div>
             <i>→</i>
-            <div class="role-split"><div><b>Publisher role</b><small>ECR push only</small></div><div><b>Deployer role</b><small>ECS rollout only</small></div></div>
+            <div class="role-split"><div><b>Publisher role</b><small>two ECR repositories</small></div><div><b>Deployer role</b><small>ECS rollout + scoped PassRole</small></div></div>
           </div>
         </div>
         <div class="security-baseline">
@@ -366,24 +362,24 @@
           <div class="pipe-step"><span>01</span><strong>Pull request</strong><small>reviewable change</small></div><i>→</i>
           <div class="pipe-step"><span>02</span><strong>CI + security</strong><small>runtime · tests · IaC · secrets</small></div><i>→</i>
           <div class="pipe-step"><span>03</span><strong>Protected main</strong><small>exact Git SHA</small></div><i>→</i>
-          <div class="pipe-step accent"><span>04</span><strong>Build & publish</strong><small>ECR · sha-&lt;commit&gt;</small></div><i>→</i>
-          <div class="pipe-step"><span>05</span><strong>Private migration</strong><small>one-off Fargate · exit 0</small></div>
+          <div class="pipe-step accent"><span>04 · RUN A</span><strong>Build & publish</strong><small>ECR · sha-&lt;commit&gt;</small></div><i>→</i>
+          <div class="pipe-step"><span>05 · OPERATOR</span><strong>Private migration</strong><small>one-off Fargate · SHA evidence</small></div>
         </div>
-        <div class="approval-gate"><span class="gate-line"></span><div><b>MANUAL PRODUCTION APPROVAL</b><small>GitHub Environment · exact revision</small></div><span class="gate-line"></span></div>
+        <div class="approval-gate"><span class="gate-line"></span><div><b>EXPLICIT DEPLOY DISPATCH + OPERATOR APPROVAL</b><small>GitHub Environment · exact revision · not a four-eyes claim</small></div><span class="gate-line"></span></div>
         <div class="pipeline second">
-          <div class="pipe-step accent"><span>06</span><strong>Deploy web</strong><small>register task revision</small></div><i>→</i>
+          <div class="pipe-step accent"><span>06 · RUN B</span><strong>Deploy web</strong><small>register task revision</small></div><i>→</i>
           <div class="pipe-step"><span>07</span><strong>Stabilize web</strong><small>ECS service wait</small></div><i>→</i>
           <div class="pipe-step"><span>08</span><strong>Worker + scheduler</strong><small>controlled rollout</small></div><i>→</i>
           <div class="pipe-step success"><span>09</span><strong>Verify</strong><small>services + HTTP health</small></div>
         </div>
-        <div class="pipeline-foot"><span><b>Immutable release:</b> source revision = image tag = migration evidence</span><span><b>Failure path:</b> changed ECS services roll back</span></div>
+        <div class="pipeline-foot"><span><b>Boundary:</b> image workflow → operator migration → deployment workflow</span><span><b>Failure path:</b> changed ECS services roll back</span></div>
         <aside class="speaker-notes">
           <h3>What to say</h3>
           <ul>
             <li>Pull requests run the complete validation and separate security workflows.</li>
             <li>Production images are tagged <code>sha-&lt;commit&gt;</code>; I do not rely on mutable <code>latest</code>.</li>
             <li>A private one-off migration must succeed for that exact SHA before deployment is allowed.</li>
-            <li>The production GitHub Environment creates a visible approval boundary.</li>
+            <li>An explicit deployment dispatch then reaches the GitHub Environment operator-approval boundary; the rehearsal does not claim independent four-eyes review.</li>
             <li>The rollout stabilizes web first, then worker and scheduler, verifies health, and attempts rollback if an updated service fails.</li>
           </ul>
           <h4>Transition</h4><p>The confidence in this pipeline comes from how the checks evolved from manual verification.</p>
@@ -466,10 +462,10 @@
         <div class="idempotency-hero">
           <div class="terminal-card" aria-label="Terraform plan result">
             <div class="terminal-top"><span></span><span></span><span></span><b>terraform plan</b></div>
-            <div class="terminal-body"><span class="prompt">$</span> terraform plan -refresh=true<div class="terminal-gap"></div><strong>No changes.</strong><small>Your infrastructure matches the configuration.</small></div>
+            <div class="terminal-body"><span class="prompt">$</span> terraform plan -refresh=true<div class="terminal-gap"></div><strong>No changes.</strong><small>Terraform-managed attributes match the configuration.</small></div>
           </div>
           <div class="equals-mark">=</div>
-          <div class="convergence-copy"><span class="label">INFRASTRUCTURE IDEMPOTENCY</span><h3>Same declaration.<br>Same resulting state.</h3><p>Re-running the configuration does not keep producing unnecessary mutations.</p></div>
+          <div class="convergence-copy"><span class="label">INFRASTRUCTURE IDEMPOTENCY</span><h3>Managed attributes<br>converge.</h3><p>Service task-definition revisions are deliberately excluded and owned by release automation.</p></div>
         </div>
         <div class="concept-separation">
           <div><span>Infrastructure</span><strong>Terraform converges</strong><small><code>plan → No changes</code></small></div>
@@ -481,7 +477,7 @@
           <ul>
             <li>I tested idempotency after the deployment, not only before it.</li>
             <li>A refreshed Terraform plan reported no changes.</li>
-            <li>This means declared infrastructure and provider-observed infrastructure had converged.</li>
+            <li>This means the Terraform-managed attributes and provider-observed values had converged.</li>
             <li>Idempotent infrastructure is different from an immutable application release.</li>
             <li>Terraform can remain unchanged while a new exact-SHA task-definition revision is deployed by release automation.</li>
           </ul>
@@ -493,23 +489,19 @@
       <section class="slide evidence-slide" id="evidence" data-title="Does it work?" data-source="docs/DELIVERY_EVIDENCE.md:24–39 · revision de3ba39">
         <header class="slide-header evidence-header">
           <div><span class="section-tag">12 · Verified evidence</span><h2>Does it work?</h2></div>
-          <div class="yes-mark"><span>YES</span><small>repository-backed rehearsal</small></div>
+          <div class="yes-mark"><span>YES</span><small>historically documented AWS rehearsal</small></div>
         </header>
         <div class="evidence-grid">
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Local runtime passed</strong><small>6 services running · 4 healthchecked · homepage 200 · <code>/healthz</code> 200</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Background work executed</strong><small>RQ worker completed the enqueued smoke job</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Immutable artifacts published</strong><small>application + NGINX images under exact Git SHA tags</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Migration and rollout passed</strong><small>private migration · web 2/2 · worker 1/1 · scheduler 1/1</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Provider read-back passed</strong><small>2 healthy ALB targets · dashboard + 18 alarms verified</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Recovery passed</strong><small>semantic probe + Django migration history restored</small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Idempotency passed</strong><small>refreshed Terraform plan: <code>No changes</code></small></div></div>
-          <div class="evidence-item"><span class="check">✓</span><div><strong>Guarded teardown passed</strong><small>76 runtime resources removed · Terraform state returned to zero</small></div></div>
+          <div class="evidence-item"><span class="check">✓</span><div><strong>Runtime</strong><small>6 services running · 4 healthchecked</small><small>homepage 200 · <code>/healthz</code> 200 · RQ job completed</small></div></div>
+          <div class="evidence-item"><span class="check">✓</span><div><strong>Immutable release</strong><small>2 SHA-tagged images · exact-SHA private migration</small><small>web 2/2 · worker 1/1 · scheduler 1/1 · 2 healthy targets</small></div></div>
+          <div class="evidence-item"><span class="check">✓</span><div><strong>Operate & recover PostgreSQL</strong><small>CloudWatch dashboard + 18 alarms read back</small><small>semantic probe + Django migration history restored</small></div></div>
+          <div class="evidence-item"><span class="check">✓</span><div><strong>Converge & remove</strong><small><code>No changes</code> for Terraform-managed attributes</small><small>76 runtime resources removed · state returned to zero</small></div></div>
         </div>
-        <div class="historical-banner"><span>Evidence boundary</span><strong>The production lifecycle was rehearsed successfully, then intentionally destroyed to stop recurring cloud cost.</strong></div>
+        <div class="historical-banner"><span>DELIVERY_EVIDENCE.md · de3ba39</span><strong>The lifecycle was rehearsed successfully, documented historically, then intentionally destroyed to stop recurring cloud cost.</strong></div>
         <aside class="speaker-notes">
           <h3>What to say</h3>
           <ul>
-            <li>This slide summarizes one complete, documented AWS rehearsal.</li>
+            <li>This slide summarizes one historically documented AWS rehearsal; not every raw local plan or command transcript was retained.</li>
             <li>It proves more than a working homepage: queue execution, immutable images, migration, stable services, load balancer health and monitoring read-back.</li>
             <li>Recovery and Terraform idempotency were tested before teardown.</li>
             <li>The guarded destroy removed 76 Terraform-managed runtime resources and the state became empty.</li>
@@ -536,7 +528,7 @@
           <div class="closing-statement">
             <span class="label">FINAL MESSAGE</span>
             <blockquote>The project was not complete when the application first opened in AWS.</blockquote>
-            <p>It was complete when the environment could be <b>reproduced</b>, <b>deployed</b>, <b>verified</b>, <b>recovered</b> and <b>safely removed</b>.</p>
+            <p>It was complete when the runtime could be <b>reproduced</b>, <b>deployed</b> and <b>verified</b>, PostgreSQL state <b>restored</b>, and infrastructure <b>safely removed</b>.</p>
             <div class="questions">Questions?</div>
           </div>
         </div>
@@ -591,7 +583,7 @@
           <div class="network-row"><span class="origin ecs">ECS SG</span><i>→</i><span class="sg endpoint-sg">Endpoint security group</span><b>TCP 443</b><small>ECR · Logs · Secrets</small></div>
         </div>
         <div class="network-principles"><span>Security groups reference security groups</span><span>No task public IPs</span><span>RDS <b>publicly_accessible = false</b></span><span>No baseline NAT Gateway</span></div>
-        <div class="appendix-note warning">Implemented demo ingress is HTTP. HTTPS support exists as a separate Terraform path but was not enabled because the training account lacked ACM permissions.</div>
+        <div class="appendix-note warning">The demo used HTTP. Optional ACM-request and HTTPS-listener resources exist, but certificate validation, redirect, secure application settings and the browser path were not implemented or verified.</div>
         <aside class="speaker-notes"><h3>Jury support</h3><ul><li>The data services are reachable only from the ECS security group.</li><li>The ALB is the only Internet-facing runtime component.</li><li>Port 443 on the ALB security group is prepared, but the verified demo used HTTP because no certificate was available.</li></ul></aside>
       </section>
 
@@ -619,7 +611,7 @@
         <div class="boundary-grid">
           <div><span>CURRENT RUNTIME</span><strong>Intentionally destroyed after rehearsal</strong></div>
           <div><span>HTTPS</span><strong>Designed as an extension; not enabled in the verified demo</strong></div>
-          <div><span>DATA HA</span><strong>Private, encrypted, backup-tested; demo DB/cache are single-AZ</strong></div>
+          <div><span>DATA RECOVERY</span><strong>RDS restore-tested; Redis restore not tested; both demo services are single-AZ</strong></div>
           <div><span>UPSTREAM</span><strong>Archived v2.5.1 baseline, preserved with provenance</strong></div>
         </div>
         <aside class="speaker-notes"><h3>Jury support</h3><ul><li>Project-specific claims come from repository source and historical evidence.</li><li>Source code takes precedence if documentation and implementation diverge.</li><li>The evidence is historical and does not claim a permanently running environment.</li></ul></aside>
