@@ -70,7 +70,8 @@ role are not reused or modified.
 
 Production Terraform state is isolated in an encrypted, versioned, public-blocked
 S3 bucket with native S3 lockfiles. The state is currently empty after the
-reviewed teardown. The Cloudflare record must be updated after each ALB
+reviewed teardown. Exact-domain Cloudflare automation updates only
+`status.yifilter.uk` after each ALB
 recreation; `10.42.0.0/16` is private VPC address space and must never be used
 as a public DNS target.
 
@@ -91,4 +92,5 @@ statuspage/          Django source from upstream v2.5.1
 - ALB is designed for public subnets; ECS tasks remain internal.
 - RDS is private (`publicly_accessible = false`) and accepts PostgreSQL traffic only from the ECS security group.
 - When deployed, `status.yifilter.uk` is an HTTP-only demonstration endpoint. The runtime is currently destroyed, and the AWS operator still lacks ACM permissions. See [`docs/HTTPS_LIMITATION.md`](docs/HTTPS_LIMITATION.md).
+- Production-minded controls now include a separate migration gate, CloudWatch dashboard/alarms, a project-scoped `$300` AWS Budget, secure SNS-to-Telegram relay code, and a semantic private RDS restore rehearsal. See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md); live proof is recorded separately from implementation.
 - This fork preserves the upstream [Apache-2.0 licence](LICENSE.txt), source history, and `upstream-v2.5.1` tag.

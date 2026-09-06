@@ -22,12 +22,15 @@ account_id="$(aws --profile "$AWS_PROFILE" sts get-caller-identity --query Accou
 [[ "$account_id" == "$EXPECTED_ACCOUNT_ID" ]] || { echo "Refusing AWS account $account_id" >&2; exit 2; }
 command -v gh >/dev/null 2>&1 || { echo "gh is required to pause production before destroy." >&2; exit 2; }
 gh variable set PRODUCTION_ENABLED --repo "${GITHUB_REPOSITORY:-yinon-mitin/Status-Page}" --body false
+gh variable set MIGRATION_EVIDENCE_SHA --repo "${GITHUB_REPOSITORY:-yinon-mitin/Status-Page}" --body destroyed
 
 cleanup_task_definitions() {
   for family in \
     yinon-status-page-prod-web \
     yinon-status-page-prod-worker \
-    yinon-status-page-prod-scheduler; do
+    yinon-status-page-prod-scheduler \
+    yinon-status-page-prod-migration \
+    yinon-status-page-prod-restore-validation; do
     active="$(aws ecs list-task-definitions --region "$AWS_REGION" \
       --family-prefix "$family" --status ACTIVE --query 'taskDefinitionArns[]' --output text)"
     [[ "$active" == "None" ]] && active=""

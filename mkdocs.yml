@@ -65,6 +65,8 @@ nav:
         - Architecture (русский): 'ARCHITECTURE.ru.md'
         - Delivery evidence: DELIVERY_EVIDENCE.md
         - Automated production lifecycle: PRODUCTION_LIFECYCLE.md
+        - Production readiness controls: PRODUCTION_READINESS.md
+        - Production integrations: PRODUCTION_INTEGRATIONS.md
         - HTTPS limitation: HTTPS_LIMITATION.md
         - Ограничение HTTPS: HTTPS_LIMITATION.ru.md
         - Technology index: 'TECHNOLOGY_INDEX.md'

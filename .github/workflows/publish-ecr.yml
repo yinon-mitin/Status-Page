@@ -49,6 +49,8 @@ jobs:
           PRODUCTION_ENABLED: ${{ vars.PRODUCTION_ENABLED }}
           AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
           AWS_DEPLOY_ROLE_TO_ASSUME: ${{ vars.AWS_DEPLOY_ROLE_TO_ASSUME }}
+          MIGRATION_EVIDENCE_SHA: ${{ vars.MIGRATION_EVIDENCE_SHA }}
+          DEPLOY_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
         run: |
           set -euo pipefail
           if [[ "$PRODUCTION_ENABLED" != "true" ]]; then
@@ -73,6 +75,10 @@ jobs:
           [[ "$ECR_NGINX_REPOSITORY" == "yinon-status-page-prod-nginx" ]]
           [[ "$ECS_CLUSTER" == "yinon-status-page-prod" ]]
           [[ "$AWS_ACCOUNT_ID" == "992382545251" ]]
+          if [[ "$DEPLOY_REQUESTED" == "true" && "$MIGRATION_EVIDENCE_SHA" != "$GITHUB_SHA" ]]; then
+            echo "A successful one-off migration task for exact SHA $GITHUB_SHA is required before deployment." >&2
+            exit 1
+          fi
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
   publish:
@@ -137,7 +143,7 @@ jobs:
   production-approval:
     name: Approve production deployment
     needs: [release-gate, publish]
-    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && (github.event_name == 'push' || inputs.deploy)
+    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && github.event_name == 'workflow_dispatch' && inputs.deploy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -149,7 +155,7 @@ jobs:
   deploy-production:
     name: Deploy immutable images to production
     needs: [release-gate, publish, production-approval]
-    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && needs.production-approval.result == 'success' && (github.event_name == 'push' || inputs.deploy) && github.ref == 'refs/heads/main'
+    if: always() && needs.release-gate.outputs.enabled == 'true' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') && needs.production-approval.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

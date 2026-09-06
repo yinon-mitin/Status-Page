@@ -124,6 +124,23 @@ variable "teardown_mode" {
   default     = false
 }
 
+variable "enable_monitoring" {
+  description = "Create the production CloudWatch dashboard, alarms, SNS topic, and project-scoped monthly Budget."
+  type        = bool
+  default     = true
+}
+
+variable "alert_https_endpoints" {
+  description = "HTTPS receivers for the production SNS alert topic, normally the verified Cloudflare Telegram relay endpoint."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for endpoint in var.alert_https_endpoints : can(regex("^https://[^[:space:]]+$", endpoint))])
+    error_message = "Every alert endpoint must be an HTTPS URL."
+  }
+}
+
 variable "final_snapshot_identifier" {
   description = "Unique RDS final snapshot identifier supplied by the automated destroy workflow."
   type        = string

@@ -32,6 +32,8 @@ docs:
 
 automation-check:
 	python3 -m unittest tests/test_delivery_automation.py -v
+	python3 -m unittest tests/test_production_readiness.py -v
+	cd integrations/cloudflare-worker && npm test
 	@for script in scripts/*.sh; do bash -n "$$script"; done
 
 verify: check test docs automation-check vm-cloud-init-check tf-fmt tf-validate tf-lint

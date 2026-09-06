@@ -17,6 +17,9 @@ AWS_PROFILE="$AWS_PROFILE" aws ecr describe-images --region "${AWS_REGION:-il-ce
 AWS_PROFILE="$AWS_PROFILE" aws ecr describe-images --region "${AWS_REGION:-il-central-1}" \
   --repository-name yinon-status-page-prod-nginx --image-ids imageTag="sha-$sha" >/dev/null
 
+CONFIRM_MIGRATION="$sha" IMAGE_TAG="sha-$sha" AWS_PROFILE="$AWS_PROFILE" \
+  "$ROOT/scripts/run_migration_task.sh"
+
 dispatched_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 gh workflow run "$WORKFLOW" --repo "$REPOSITORY" --ref main -f publish=false -f deploy=true
 run_id=""
