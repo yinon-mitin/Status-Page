@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Status-Page on AWS — DevOps final project presentation by Yinon Mitin">
+  <meta name="theme-color" content="#07111f">
+  <title>Status-Page on AWS — DevOps Final Project</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <main id="viewport" aria-label="Status-Page on AWS presentation">
+    <div id="deck" role="region" aria-live="polite">
+
+      <section class="slide title-slide" id="title" data-title="Status-Page on AWS" data-source="README.md · docs/DELIVERY_EVIDENCE.md">
+        <div class="slide-grid"></div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> DevOps Final Project</div>
+        <div class="title-layout">
+          <div>
+            <h1>Status-Page<br><span class="accent-text">on AWS</span></h1>
+            <p class="title-subtitle">From local verification to<br>reproducible cloud delivery</p>
+            <div class="presenter-line">
+              <strong>Yinon Mitin</strong>
+              <span>Technical jury presentation</span>
+            </div>
+          </div>
+          <div class="title-mark" aria-hidden="true">
+            <div class="orbit orbit-one"></div>
+            <div class="orbit orbit-two"></div>
+            <img src="assets/statuspage-devops-icon.png" alt="">
+          </div>
+        </div>
+        <div class="tech-ribbon" aria-label="Core technologies">
+          <span class="tech-logo"><img src="assets/logos/docker-original.svg" alt="Docker"><b>Docker</b></span>
+          <span class="tech-logo"><img src="assets/logos/terraform-original.svg" alt="Terraform"><b>Terraform</b></span>
+          <span class="tech-logo aws-logo"><img src="assets/logos/amazonwebservices-original-wordmark.svg" alt="AWS"><b>AWS</b></span>
+          <span class="tech-logo"><img src="assets/logos/github-original.svg" alt="GitHub"><b>GitHub Actions</b></span>
+          <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page</a>
+        </div>
+        <aside class="speaker-notes">
+          <h3>Opening</h3>
+          <ul>
+            <li>This project starts with an existing Django application, not a new product.</li>
+            <li>My work was the delivery platform around it: containers, AWS, Terraform, CI/CD, verification and recovery.</li>
+            <li>The main story is the method: understand first, automate second, prove the full lifecycle last.</li>
+          </ul>
+          <h4>Transition</h4><p>First, what problem was I actually solving?</p>
+          <h4>Likely question</h4><p><b>Is the application yours?</b> No. It is the archived Status-Page v2.5.1 upstream project; my contribution is primarily the DevOps platform layer.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="challenge" data-title="The challenge" data-source="README.md · UPSTREAM.md">
+        <header class="slide-header">
+          <span class="section-tag">01 · Context</span>
+          <h2>What was I actually asked to solve?</h2>
+        </header>
+        <div class="challenge-composition">
+          <div class="challenge-source">
+            <span class="label">INPUT</span>
+            <div class="source-product">
+              <img src="assets/logos/django-plain.svg" alt="Django">
+              <div><strong>Existing application</strong><small>Status-Page v2.5.1</small></div>
+            </div>
+            <p>Archived upstream Django application with PostgreSQL, Redis, worker and scheduler roles.</p>
+          </div>
+          <div class="challenge-arrow" aria-hidden="true"><span></span><b>DEVOPS DELIVERY LAYER</b><span></span></div>
+          <div class="challenge-outcome">
+            <span class="label">OUTCOME</span>
+            <h3>A controlled cloud lifecycle</h3>
+            <div class="verb-sequence">
+              <span>Understand</span><i>→</i><span>Package</span><i>→</i><span>Declare</span><i>→</i><span>Deliver</span><i>→</i><span>Prove</span>
+            </div>
+            <p>More than deployment: a reproducible, verifiable, recoverable and removable environment.</p>
+          </div>
+        </div>
+        <div class="bottom-thesis"><span>Core challenge</span><strong>The DevOps lifecycle around the application—not a rewrite of the application.</strong></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>The assignment was broad: take an existing application, understand it, and deploy it correctly.</li>
+            <li>The upstream application already provided the business logic.</li>
+            <li>I kept application changes deployment-focused: environment configuration, <code>/healthz</code>, compatibility fixes and local demo support.</li>
+            <li>The real engineering work was the operational system around it.</li>
+          </ul>
+          <h4>Transition</h4><p>I structured the work as a repeatable engineering method, with evidence at each stage.</p>
+          <h4>Likely question</h4><p><b>What did you change in the app?</b> Mostly deployment-facing configuration and health behavior, plus small dependency, frontend and local-demo compatibility changes. The main contribution remains the platform layer.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="method" data-title="Project approach" data-source="git history after upstream-v2.5.1 · docs/DELIVERY_EVIDENCE.md">
+        <header class="slide-header">
+          <span class="section-tag">02 · Project approach</span>
+          <h2>How did I structure the work?</h2>
+        </header>
+        <div class="method-rail">
+          <article class="method-phase"><span class="phase-no">01</span><div><strong>Understand</strong><small>Upstream · settings · roles</small></div><ul><li>Read the application</li><li>Map dependencies</li></ul></article>
+          <article class="method-phase"><span class="phase-no">02</span><div><strong>Package & verify</strong><small>Docker · Compose · health</small></div><ul><li>Build manually</li><li>Prove local behavior</li></ul></article>
+          <article class="method-phase"><span class="phase-no">03</span><div><strong>Design & declare</strong><small>ECS · private network · Terraform</small></div><ul><li>Choose workload fit</li><li>Review saved plans</li></ul></article>
+          <article class="method-phase"><span class="phase-no">04</span><div><strong>Secure & deliver</strong><small>AWS profile · OIDC · ECR · migration</small></div><ul><li>Scoped identities</li><li>Exact-SHA rollout</li></ul></article>
+          <article class="method-phase"><span class="phase-no">05</span><div><strong>Prove lifecycle</strong><small>Verify · restore · converge · destroy</small></div><ul><li>Read back reality</li><li>Clean up deliberately</li></ul></article>
+        </div>
+        <div class="full-lifecycle-line">
+          <span>LOCAL</span><i>→</i><span>CONTAINERS</span><i>→</i><span>INFRASTRUCTURE</span><i>→</i><span>DELIVERY</span><i>→</i><span>RECOVERY</span><i>→</i><span>TEARDOWN</span>
+        </div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>I used a repeatable engineering method to turn an unfamiliar application into a verified, recoverable and removable workload; each stage depended on evidence from the previous one.</li>
+            <li>The commit history supports this progression: Docker foundation, local smoke tests, Terraform quality gates, network and data plane, private ECS runtime, release automation, then full lifecycle evidence.</li>
+            <li>I did not automate production creation before local behavior was stable.</li>
+            <li>I also did not stop at deployment; recovery, idempotency and teardown were planned as normal lifecycle stages.</li>
+          </ul>
+          <h4>Transition</h4><p>The first stage was local understanding: prove how the application behaves before automating it.</p>
+          <h4>Likely question</h4><p><b>Was this sequence planned from day one?</b> The broad layers were deliberate, while the history also shows corrections as AWS account limits and runtime behavior were discovered.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="understand" data-title="Understand before automate" data-source="docker-compose.yml · Makefile · Dockerfile">
+        <header class="slide-header">
+          <span class="section-tag">03 · Baseline</span>
+          <h2>Why did I start locally?</h2>
+        </header>
+        <div class="manual-map">
+          <div class="manual-left">
+            <p class="lead">Automation is useful only after the runtime is understood.</p>
+            <div class="manual-steps">
+              <div><b>01</b><span><strong>Read the application</strong><small>dependencies, settings, process roles</small></span></div>
+              <div><b>02</b><span><strong>Build two images</strong><small>Application: Django/Gunicorn · NGINX: static assets + proxy</small></span></div>
+              <div><b>03</b><span><strong>Run the full stack</strong><small>database, cache, web, proxy, worker, scheduler</small></span></div>
+              <div><b>04</b><span><strong>Observe behavior</strong><small>startup order, networking, health, queue work</small></span></div>
+            </div>
+          </div>
+          <div class="compose-system" aria-label="Local Docker Compose service inventory, not a dependency diagram">
+            <div class="compose-title"><span>COMPOSE / SERVICE INVENTORY</span><b>6 services</b></div>
+            <div class="compose-row split">
+              <div class="service-card proxy"><img src="assets/logos/nginx-original.svg" alt=""><strong>NGINX</strong><small>:8081 → :80</small></div>
+
+              <div class="service-card app"><img src="assets/logos/django-plain.svg" alt=""><strong>Web</strong><small>Gunicorn · :8001</small></div>
+            </div>
+            <div class="compose-row split">
+              <div class="service-card worker"><span class="service-glyph">W</span><strong>RQ Worker</strong><small>high · default · low</small></div>
+              <div class="service-card worker"><span class="service-glyph">S</span><strong>Scheduler</strong><small>recurring jobs</small></div>
+            </div>
+            <div class="compose-row split">
+              <div class="service-card data"><img src="assets/logos/postgresql-original.svg" alt=""><strong>PostgreSQL</strong><small>system of record</small></div>
+              <div class="service-card data"><img src="assets/logos/redis-original.svg" alt=""><strong>Redis</strong><small>queue + cache</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="quote-line">“Manual understanding → repeatable validation → automation.”</div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>I did not begin with Terraform.</li>
+            <li>I built exactly two project images: the Django/Gunicorn application image, reused by web, worker and scheduler, and the NGINX image with compiled static assets and proxy configuration. Then I ran the six-service Compose stack.</li>
+            <li>This exposed the real startup order and dependencies: PostgreSQL, Redis, web, NGINX, worker and scheduler.</li>
+            <li>I checked the homepage, health endpoint, Django system checks and an actual queued RQ job.</li>
+            <li>This manual baseline later became the automated verification gate.</li>
+          </ul>
+          <h4>Transition</h4><p>Once the workload was clear, I could choose an orchestration platform based on its actual size.</p>
+          <h4>Likely question</h4><p><b>Why keep NGINX separate?</b> It serves compiled static assets and proxies to Gunicorn. In production, both containers share one ECS web task without a shared persistent volume.</p>
+        </aside>
+      </section>
+
+      <section class="slide decision-slide" id="why-ecs" data-title="Why ECS and not EKS?" data-source="docs/ARCHITECTURE.md · terraform/main.tf">
+        <header class="slide-header">
+          <span class="section-tag">04 · Architecture decision</span>
+          <h2>Why ECS—and not EKS?</h2>
+        </header>
+        <div class="decision-layout">
+          <div class="workload-shape">
+            <span class="label">THE WORKLOAD</span>
+            <h3>Three process roles.<br>Two images.<br>No Kubernetes requirement.</h3>
+            <div class="role-chips"><span>Web ×2</span><span>Worker ×1</span><span>Scheduler ×1</span></div>
+          </div>
+          <div class="decision-scale" aria-label="Platform fit comparison">
+            <div class="platform-option">
+              <div><strong>EC2</strong><span>Possible</span></div>
+              <p>Host patching, capacity and container scheduling remain my responsibility.</p>
+              <small>MEDIUM OPERATIONS</small>
+            </div>
+            <div class="platform-option selected">
+              <div><strong>ECS Fargate</strong><span>Chosen</span></div>
+              <p>Managed container orchestration with no host fleet to maintain.</p>
+              <small>STRONG WORKLOAD FIT</small>
+            </div>
+            <div class="platform-option">
+              <div><strong>EKS</strong><span>Powerful</span></div>
+              <p>Kubernetes capabilities and operational surface exceed this project’s needs.</p>
+              <small>HIGH OPERATIONS</small>
+            </div>
+          </div>
+        </div>
+        <div class="principle-banner"><span>Engineering principle</span><strong>Choose the smallest platform that correctly solves the problem.</strong></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>EKS is not a bad platform; it is simply more platform than this workload needs.</li>
+            <li>The workload has a few stable process roles and no Kubernetes-specific requirement.</li>
+            <li>EC2 could work, but I would own host maintenance and more scheduling decisions.</li>
+            <li>ECS Fargate gives managed orchestration without managing EC2 hosts.</li>
+            <li>That matched the workload, reduced operational overhead and made the platform simpler to operate.</li>
+          </ul>
+          <h4>Transition</h4><p>With that decision made, the complete AWS design stays small enough to understand quickly.</p>
+          <h4>Likely questions</h4><p><b>Would you always choose ECS?</b> No. If the organization already operated Kubernetes or needed its ecosystem and portability, EKS could be justified. The choice depends on the workload and operating model.</p>
+        </aside>
+      </section>
+
+      <section class="slide architecture-slide" id="architecture" data-title="Final architecture" data-source="docs/ARCHITECTURE.md · terraform/network.tf · terraform/data_plane.tf">
+        <header class="slide-header compact">
+          <div><span class="section-tag">05 · Runtime design</span><h2>How does the final architecture work?</h2></div>
+          <div class="legend"><span class="public-dot">Public</span><span class="app-dot">Application</span><span class="data-dot">Data</span><span class="ops-dot">Delivery / Ops</span></div>
+        </header>
+        <div class="architecture-canvas">
+          <svg viewBox="0 0 1760 720" role="img" aria-labelledby="arch-title arch-desc">
+            <title id="arch-title">Status-Page AWS architecture</title>
+            <desc id="arch-desc">Delivery and AWS regional services sit outside the VPC: GitHub Actions assumes separate publish and deploy roles through OIDC, publishes immutable ECR images, and rolls out their revision through the ECS control plane. Dashed control-plane arrows differ from solid private-access paths. Users reach the public ALB and private web tasks. A separate dependency key below the VPC specifies Web and Worker access to PostgreSQL and Redis, and Scheduler access to Redis only. All task roles share private AWS access via VPC endpoints for image pulls, logs and secrets. Data services are single-AZ; two web tasks do not assert one task per AZ. Optional Cloudflare DNS is a separate dashed node.</desc>
+            <defs>
+              <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" viewBox="0 0 12 12" refX="12" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7e91a8"/></marker>
+              <marker id="arrowAccent" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" viewBox="0 0 12 12" refX="12" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#59c9c2"/></marker>
+              <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".22"/></filter>
+            </defs>
+            <!-- Regional AWS services and delivery control are NOT subnet resources. -->
+            <rect id="arch-ops-layer" x="5" y="5" width="1740" height="145" rx="18" fill="rgba(89,201,194,.025)" stroke="rgba(89,201,194,.3)"/>
+            <text class="boundary-title" x="25" y="32" style="font-size:20px;fill:#59c9c2">DELIVERY / OPS · OUTSIDE VPC</text>
+            <path class="connector delivery" d="M275 94 H340" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery" d="M620 94 H720" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M1000 94 H1080" marker-end="url(#arrowAccent)"/>
+            <g class="node ops" transform="translate(25 50)"><rect width="250" height="80" rx="13"/><circle cx="34" cy="38" r="22"/><text class="node-code" x="34" y="43">GH</text><text x="68" y="34" style="font-size:24px">GitHub Actions</text><text class="node-sub" x="68" y="63" style="font-size:24px">Build + release</text></g>
+            <g class="node ops" transform="translate(340 50)"><rect width="280" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">OIDC → AWS roles</text><text class="node-sub" x="20" y="63" style="font-size:24px">Publish / deploy</text></g>
+            <g id="arch-ecr" class="node ops" transform="translate(720 50)"><rect width="280" height="80" rx="13"/><circle cx="34" cy="38" r="22"/><text class="node-code" x="34" y="43">ECR</text><text x="68" y="34" style="font-size:24px">ECR images</text><text class="node-sub" x="68" y="63" style="font-size:24px">sha-&lt;commit&gt;</text></g>
+            <g class="node ops" transform="translate(1080 50)"><rect width="300" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">ECS rollout</text><text class="node-sub" x="20" y="63" style="font-size:24px">Deploy role + revision</text></g>
+            <g id="arch-cloudwatch" class="node ops" transform="translate(1450 50)"><rect width="275" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">CloudWatch</text><text class="node-sub" x="20" y="63" style="font-size:24px">Logs · metrics · alarms</text></g>
+
+            <rect id="arch-vpc" class="vpc-boundary" x="235" y="235" width="1500" height="390" rx="20"/>
+            <text class="boundary-title" x="255" y="270" style="font-size:20px">AWS VPC</text>
+            <text class="boundary-title" x="255" y="302" style="font-size:18px;letter-spacing:0">Subnet topology: 2 AZs</text>
+            <rect id="arch-access-zone" x="590" y="250" width="1130" height="90" rx="14" fill="rgba(89,201,194,.035)" stroke="rgba(89,201,194,.3)"/>
+            <text class="zone-title" x="610" y="280" style="font-size:20px;fill:#59c9c2">PRIVATE AWS ACCESS</text>
+            <text class="node-sub" x="610" y="315" style="font:24px var(--sans);fill:#9fb0c2">All tasks · no baseline NAT</text>
+            <g id="arch-endpoints" class="node ops" transform="translate(1100 263)"><rect width="590" height="64" rx="12"/><text x="20" y="27" style="font-size:24px">VPC endpoints</text><text class="node-sub" x="20" y="53" style="font-size:24px">ECR + S3 image layers · Logs · Secrets</text></g>
+            <!-- Solid private-access arrows point from caller toward AWS service. -->
+            <path class="connector" d="M1410 263 V200 H1022 Q1010 216 998 200 H860 V130" marker-end="url(#arrow)"/>
+            <text x="1170" y="193" style="font:24px var(--sans);fill:#9fb0c2">Private image pull</text>
+            <path class="connector" d="M1600 263 V130" marker-end="url(#arrow)"/>
+            <text x="1620" y="193" style="font:24px var(--sans);fill:#9fb0c2">Logs</text>
+
+            <rect id="arch-public-zone" class="zone public-zone" x="250" y="355" width="290" height="195" rx="16"/>
+            <rect id="arch-app-zone" class="zone app-zone" x="590" y="355" width="460" height="260" rx="16"/>
+            <rect id="arch-data-zone" class="zone data-zone" x="1100" y="355" width="620" height="260" rx="16"/>
+            <text class="zone-title" x="270" y="389" style="font-size:20px">PUBLIC SUBNETS</text>
+            <text class="zone-title" x="610" y="385" style="font-size:20px">PRIVATE APP · ECS FARGATE</text>
+            <text class="zone-title" x="1120" y="385" style="font-size:20px">PRIVATE DATA · SINGLE-AZ SERVICES</text>
+            <g id="arch-rollout-target" class="node application" transform="translate(620 395)"><rect width="350" height="42" rx="8"/><text x="16" y="29" style="font-size:24px">Rollout target · all 3 roles</text></g>
+            <path class="connector delivery dashed" d="M1230 130 V166 H1010 V414 H970" marker-end="url(#arrowAccent)"/>
+            <text x="350" y="193" style="font:24px var(--sans);fill:#59c9c2">Dashed = deployment control</text>
+            <path class="connector delivery dashed" d="M620 414 H603 V466 M603 484 V579"/>
+            <path class="connector delivery dashed" d="M603 495 H620" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M603 533 H620" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M603 579 H620" marker-end="url(#arrowAccent)"/>
+
+            <g class="node external" transform="translate(10 435)"><rect width="190" height="95" rx="14"/><circle cx="30" cy="30" r="19"/><path d="M20 45c3-12 17-12 20 0M30 29a8 8 0 1 0 0-16 8 8 0 0 0 0 16"/><text x="62" y="37" style="font-size:24px">USER</text><text class="node-sub" x="18" y="73" style="font-size:24px">HTTP request</text></g>
+            <g class="node public" transform="translate(265 435)"><rect width="260" height="95" rx="14"/><circle cx="33" cy="32" r="22"/><text class="node-code" x="33" y="37">ALB</text><text x="68" y="38" style="font-size:24px">Load balancer</text><text class="node-sub" x="18" y="74" style="font-size:24px">Internet-facing · 2 AZs</text></g>
+            <path class="connector main" d="M200 475 H265" marker-end="url(#arrowAccent)"/>
+            <path class="connector main" d="M525 475 H620" marker-end="url(#arrowAccent)"/>
+            <g class="node external" transform="translate(10 280)"><rect width="190" height="90" rx="14" style="stroke-dasharray:6 6"/><image href="assets/logos/cloudflare-original.svg" x="15" y="14" width="32" height="32"/><text x="58" y="37" style="font-size:24px">DNS</text><text class="node-sub" x="15" y="70" style="font-size:24px">Optional</text></g>
+            <path class="connector dashed" d="M105 435 V370" marker-end="url(#arrow)"/>
+
+            <g id="arch-web" class="node application primary" transform="translate(620 445)"><rect width="410" height="60" rx="13"/><circle cx="34" cy="30" r="22"/><text class="node-code" x="34" y="35">WEB</text><text x="70" y="25" style="font-size:24px">Web · 2 tasks</text><text class="node-sub" x="70" y="50" style="font-size:24px">NGINX + application image</text></g>
+            <g id="arch-worker" class="node application" transform="translate(620 513)"><rect width="410" height="40" rx="10"/><text class="node-code" x="34" y="26">W</text><text x="70" y="28" style="font-size:24px">RQ Worker · 1 task</text></g>
+            <g id="arch-scheduler" class="node application" transform="translate(620 560)"><rect width="410" height="38" rx="10"/><text class="node-code" x="34" y="25">S</text><text x="70" y="27" style="font-size:24px">RQ Scheduler · 1 task</text></g>
+            <path class="connector" d="M1030 475 H1070 M1030 533 H1070 M1030 579 H1070 V295 H1100" marker-end="url(#arrow)"/>
+            <circle cx="1070" cy="475" r="5" fill="#71859b"/><circle cx="1070" cy="533" r="5" fill="#71859b"/>
+            <g id="arch-postgresql" class="node data" transform="translate(1120 425)"><rect width="280" height="120" rx="14"/><circle cx="34" cy="34" r="22"/><text class="node-code" x="34" y="39">DB</text><text x="70" y="39" style="font-size:24px">RDS PostgreSQL</text><text class="node-sub" x="20" y="77" style="font-size:24px">System of record</text><text class="node-sub" x="20" y="106" style="font-size:24px">Private · encrypted</text></g>
+            <g id="arch-redis" class="node data" transform="translate(1420 425)"><rect width="280" height="120" rx="14"/><circle cx="34" cy="34" r="22"/><text class="node-code" x="34" y="39">R</text><text x="70" y="39" style="font-size:24px">ElastiCache Redis</text><text class="node-sub" x="20" y="77" style="font-size:24px">Queue + cache</text><text class="node-sub" x="20" y="106" style="font-size:24px">Private · encrypted</text></g>
+            <!-- Dependency key outside all placement boundaries replaces crossing runtime edges. -->
+            <g id="arch-dependency-key" transform="translate(250 642)">
+              <rect width="1470" height="68" rx="12" fill="rgba(173,156,240,.035)" stroke="rgba(173,156,240,.3)"/>
+              <text class="zone-title" x="20" y="25" style="font-size:20px">RUNTIME DATA DEPENDENCIES</text>
+              <g style="font:24px var(--sans);fill:#dce6ef">
+                <text x="20" y="59">Web → PostgreSQL + Redis</text>
+                <text x="510" y="59">Worker → PostgreSQL + Redis</text>
+                <text x="1040" y="59">Scheduler → Redis</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="architecture-note"><b>Public surface:</b> only the ALB. <b>Compute and data:</b> private. <b>AWS API access:</b> VPC endpoints. <b>State:</b> managed outside containers.</div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>The request path is intentionally simple: user, public ALB, private web task, then PostgreSQL and Redis.</li>
+            <li>The ALB and subnet topology span two Availability Zones; the web service has a desired count of two.</li>
+            <li>Worker and scheduler use the same application image with different commands.</li>
+            <li>RDS and Redis are managed services because persistent data has a different lifecycle from stateless containers.</li>
+            <li>Private tasks reach ECR, S3, Logs and Secrets Manager through VPC endpoints; no permanent NAT Gateway is required in the baseline.</li>
+            <li>The baseline therefore has no general public Internet egress; arbitrary webhooks or UptimeRobot synchronization need an added egress path.</li>
+          </ul>
+          <h4>Transition</h4><p>With the runtime design established, Terraform makes its infrastructure repeatable and reviewable.</p>
+          <h4>Likely questions</h4><p><b>Is the data tier multi-AZ?</b> No. The demo RDS instance and Redis node are single-AZ. The ALB spans two AZs; the web service has two tasks and subnets in both AZs, but the retained evidence does not prove one task per AZ.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="iac" data-title="Infrastructure as Code" data-source="terraform/README.md · scripts/validate_terraform_plan.py · docs/PRODUCTION_LIFECYCLE.md">
+        <header class="slide-header">
+          <span class="section-tag">06 · Reproducibility</span>
+          <h2>How did I make the environment reproducible?</h2>
+        </header>
+        <div class="iac-layout">
+          <div class="declaration-loop">
+            <div class="loop-node desired"><span>01</span><strong>Declare</strong><small>Terraform configuration</small></div>
+            <div class="loop-arrow">→</div>
+            <div class="loop-node plan"><span>02</span><strong>Inspect</strong><small>Saved plan + JSON allowlist</small></div>
+            <div class="loop-arrow">→</div>
+            <div class="loop-node actual"><span>03</span><strong>Converge</strong><small>AWS provider read-back</small></div>
+            <div class="loop-return">re-run after convergence<br>No changes</div>
+          </div>
+          <div class="iac-ownership">
+            <div class="iac-layers" aria-label="Terraform-managed disposable runtime">
+              <span class="label">TERRAFORM-MANAGED DISPOSABLE RUNTIME</span>
+              <div class="layer"><span>Network</span><b>VPC · 6 subnets · SGs · endpoints · ALB</b></div>
+              <div class="layer"><span>Data</span><b>RDS · Redis · managed DB secret policy</b></div>
+              <div class="layer"><span>Compute</span><b>ECR · ECS cluster · tasks · services</b></div>
+              <div class="layer"><span>Operations</span><b>Logs · dashboard · 18 alarms · optional alerts</b></div>
+            </div>
+            <div class="bootstrap-boundary" aria-label="External one-time bootstrap, outside Terraform ownership"><span>EXTERNAL / ONE-TIME BOOTSTRAP</span><strong>S3 state bucket · four IAM roles · Django secret</strong><small>Separate ownership · training-account permissions</small></div>
+          </div>
+        </div>
+        <div class="guard-row"><span>Terraform create/destroy paths check</span><b>account</b><b>clean exact source</b><b>private inputs</b><b>saved-plan shape</b></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>Terraform makes the architecture declarative, reviewable and repeatable.</li>
+            <li>The state is stored in an encrypted, versioned S3 backend with lockfiles.</li>
+            <li>The scripts do not blindly apply. They save a plan, convert it to JSON and validate allowed actions and resources.</li>
+            <li>Create rejects standalone destroys but allows guarded ECS task-definition replacements; destroy accepts a reviewed delete-only shape after narrow preparation.</li>
+            <li>Some bootstrap boundaries remain manual because the training account did not allow this project to manage IAM.</li>
+          </ul>
+          <h4>Transition</h4><p>Those bootstrap boundaries also define how humans and automation authenticate to AWS.</p>
+          <h4>Likely question</h4><p><b>Is everything Terraform-managed?</b> No. The state bucket, four IAM roles and external Django secret are explicit one-time bootstrap boundaries. Terraform manages the disposable runtime.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="security" data-title="Access and security" data-source="scripts require AWS_PROFILE and exact account · publish-ecr.yml">
+        <header class="slide-header">
+          <span class="section-tag">07 · Access & security</span>
+          <h2>How do humans and automation access AWS?</h2>
+        </header>
+        <div class="identity-diagram">
+          <div class="identity-lane human-lane">
+            <span class="lane-label">HUMAN</span>
+            <div class="identity-node person"><span>YM</span><strong>Operator</strong><small>local lifecycle scripts</small></div>
+            <i>→</i>
+            <div class="human-sso"><strong>SSO / IAM Identity Center</strong><small>Intended credential source<br>External to repository evidence</small></div>
+            <i>→</i>
+            <div class="identity-node credential"><span>CLI</span><strong>AWS CLI profile</strong><small>approved named profile</small></div>
+            <i>→</i>
+            <div class="identity-node aws"><span>AWS</span><strong>Approved account</strong><small>exact account check</small></div>
+          </div>
+          <div class="identity-lane automation-lane">
+            <span class="lane-label">AUTOMATION</span>
+            <div class="identity-node person"><span>GH</span><strong>GitHub Actions</strong><small>exact repo + main</small></div>
+            <i>→</i>
+            <div class="identity-node credential"><span>OIDC</span><strong>Temporary identity</strong><small>no stored AWS keys</small></div>
+            <i>→</i>
+            <div class="role-split"><div><b>Publisher role</b><small>two ECR repositories</small></div><div><b>Deployer role</b><small>ECS rollout + scoped PassRole</small></div></div>
+          </div>
+        </div>
+        <div class="security-baseline">
+          <div><span>Runtime secrets</span><strong>Secrets Manager → ECS injection</strong></div>
+          <div><span>Network</span><strong>ALB public · tasks/data private</strong></div>
+          <div><span>Repository</span><strong>CI + complete-history Gitleaks scan</strong></div>
+        </div>
+
+        <div class="key-answer"><span>Where are the permanent AWS keys in GitHub?</span><strong>They are not required.</strong></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>Manual lifecycle work uses the approved <code>status-page</code> AWS CLI profile and verifies the exact account.</li>
+            <li>Human access is intended to use SSO through IAM Identity Center and a CLI profile. The credential source remains external: the repository does not enforce or prove this setup.</li>
+            <li>Automation is different: the implemented GitHub workflow uses OIDC to request temporary credentials for a restricted role.</li>
+            <li>There are separate publisher and deployer identities because pushing images and changing running services are different privileges.</li>
+            <li>Runtime secrets are injected from Secrets Manager, not committed to Git or built into images.</li>
+            <li>The public network surface ends at the ALB.</li>
+          </ul>
+          <h4>Transition</h4><p>Now I can show what those identities do during a release.</p>
+          <h4>Likely questions</h4><p><b>Why not claim AWS SSO?</b> The repository proves a named profile and exact-account checks, not the profile’s credential source. SSO through IAM Identity Center is the intended human-access model, not a repository-verified credential source. <b>Why is migration operator-run?</b> The fixed deployer role lacks <code>ecs:RunTask</code>.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="cicd" data-title="CI/CD" data-source=".github/workflows/ci.yml · .github/workflows/security.yml · .github/workflows/publish-ecr.yml">
+        <header class="slide-header">
+          <span class="section-tag">08 · Delivery</span>
+          <h2>What happens after code reaches GitHub?</h2>
+        </header>
+        <div class="pipeline">
+          <div class="pipe-step"><span>01</span><strong>Pull request</strong><small>reviewable change</small></div><i>→</i>
+          <div class="pipe-step"><span>02</span><strong>CI + security</strong><small>runtime · tests · IaC · secrets</small></div><i>→</i>
+          <div class="pipe-step"><span>03</span><strong>Protected main</strong><small>exact Git SHA</small></div><i>→</i>
+          <div class="pipe-step accent"><span>04 · PUBLISH WORKFLOW</span><strong>Build & publish</strong><small>ECR · sha-&lt;commit&gt;</small></div><i>→</i>
+          <div class="pipe-step"><span>05 · OPERATOR</span><strong>Private migration</strong><small>one-off Fargate · SHA evidence</small></div>
+        </div>
+        <div class="approval-gate"><span class="gate-line"></span><div><b>MANUAL PRODUCTION APPROVAL</b><small>GitHub Environment · exact release revision</small></div><span class="gate-line"></span></div>
+        <div class="pipeline second">
+          <div class="pipe-step accent"><span>06 · DEPLOY WORKFLOW</span><strong>Deploy web</strong><small>register task revision</small></div><i>→</i>
+          <div class="pipe-step"><span>07</span><strong>Stabilize web</strong><small>ECS service wait</small></div><i>→</i>
+          <div class="pipe-step"><span>08</span><strong>Worker + scheduler</strong><small>controlled rollout</small></div><i>→</i>
+          <div class="pipe-step success"><span>09</span><strong>Verify</strong><small>services + HTTP health</small></div>
+        </div>
+        <div class="pipeline-foot"><span><b>Boundary:</b> image workflow → operator migration → deployment workflow</span><span><b>Failure path:</b> rollback attempt for changed ECS services</span></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>Pull requests run the complete validation and separate security workflows.</li>
+            <li>Production images are tagged <code>sha-&lt;commit&gt;</code>; I do not rely on mutable <code>latest</code>.</li>
+            <li>A private one-off migration must succeed for that exact SHA before deployment is allowed.</li>
+            <li>An explicit deployment dispatch then reaches the GitHub Environment operator-approval boundary; the rehearsal does not claim independent four-eyes review.</li>
+            <li>The rollout stabilizes web first, then worker and scheduler, verifies health, and attempts rollback. Initial service bootstrap is a separate operator/Terraform phase; the Environment protects later releases.</li>
+          </ul>
+          <h4>Transition</h4><p>The confidence in this pipeline comes from how the checks evolved from manual verification.</p>
+          <h4>Likely question</h4><p><b>Does every push deploy?</b> No. Image publication and runtime deployment are separate. Deployment requires workflow dispatch, exact migration evidence and production approval; <code>PRODUCTION_ENABLED=false</code> pauses the path after teardown.</p>
+        </aside>
+      </section>
+
+      <section class="slide" id="testing" data-title="Testing and verification" data-source="Makefile · .github/workflows/ci.yml · docs/DELIVERY_EVIDENCE.md">
+        <header class="slide-header">
+          <span class="section-tag">09 · Quality</span>
+          <h2>How did manual checks become repeatable verification?</h2>
+        </header>
+        <div class="confidence-curve">
+          <div class="confidence-stage manual">
+            <span class="stage-label">FIRST</span>
+            <h3>Manual understanding</h3>
+            <ul><li>Build both images</li><li>Start all six services</li><li>Inspect startup and networking</li><li>Exercise homepage, health and queue</li></ul>
+          </div>
+          <div class="confidence-bridge"><span>repeat the checks</span><b>→</b><span>encode the checks</span></div>
+          <div class="confidence-stage automated">
+            <span class="stage-label">THEN</span>
+            <h3><code>make verify</code></h3>
+            <div class="check-columns">
+              <ul><li>Docker + application health</li><li>Django checks + tests</li><li>RQ smoke job</li></ul>
+              <ul><li>Terraform fmt + validate</li><li>TFLint</li><li>Shell + automation contracts</li></ul>
+            </div>
+          </div>
+        </div>
+        <div class="ci-proof"><span class="status-light"></span><strong>CI rebuilds the stack and runs the same high-signal checks on GitHub-hosted runners.</strong></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>I first ran the system manually so failures had context.</li>
+            <li>Then I converted those observations into repeatable checks.</li>
+            <li><code>make verify</code> covers application behavior, Django tests, RQ processing, Terraform quality and automation contracts. It also runs the strict documentation build, Cloud-Init validation and Cloudflare Worker integration tests.</li>
+            <li>CI builds and starts the complete Compose stack instead of running only static linting.</li>
+            <li>A separate workflow scans the complete reachable Git history with Gitleaks.</li>
+            <li>The explicit Django suite is small; most custom tests validate platform contracts. <code>/healthz</code> is liveness-only, while separate runtime checks exercise the queue.</li>
+          </ul>
+          <h4>Transition</h4><p>Normal health proves the system works today; recovery testing asks whether it can survive data loss tomorrow.</p>
+          <h4>Likely question</h4><p><b>Is an image build enough?</b> No. The gate also starts the stack and verifies HTTP, Django, tests and an enqueued RQ job.</p>
+        </aside>
+      </section>
+
+      <section class="slide recovery-slide" id="recovery" data-title="Recovery" data-source="scripts/production_backup_restore_test.sh · docs/PRODUCTION_LIFECYCLE.md">
+        <header class="slide-header">
+          <span class="section-tag">10 · Recovery</span>
+          <h2>Is a backup useful if restoration was never tested?</h2>
+        </header>
+        <div class="recovery-flow">
+          <div class="recovery-step"><span>01</span><div><strong>Write probe</strong><small>unique token in PostgreSQL</small></div></div><i>→</i>
+          <div class="recovery-step"><span>02</span><div><strong>Create snapshot</strong><small>project-scoped and tagged</small></div></div><i>→</i>
+          <div class="recovery-step"><span>03</span><div><strong>Restore</strong><small>temporary private RDS</small></div></div><i>→</i>
+          <div class="recovery-step emphasis"><span>04</span><div><strong>Verify meaning</strong><small>probe + Django migrations</small></div></div><i>→</i>
+          <div class="recovery-step"><span>05</span><div><strong>Clean up</strong><small>verify DB + snapshot absence</small></div></div>
+        </div>
+        <div class="semantic-restore">
+          <div class="database-visual"><div class="db-disc top"></div><div class="db-body"><code>restore-&lt;sha&gt;-&lt;time&gt;</code><span>probe found = 1</span><span>django_migrations &gt; 0</span></div><div class="db-disc bottom"></div></div>
+          <div class="semantic-copy"><span class="label">SEMANTIC RESTORE</span><h3>Not just “RDS says available.”</h3><p>A private Fargate task connects to the restored database and checks that the expected application data is actually present.</p></div>
+        </div>
+        <div class="cleanup-proof">Cleanup is part of <b>PASS</b>, not deferred housekeeping.</div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>Enabling automated backups is configuration; it is not proof of recovery.</li>
+            <li>The rehearsal writes a unique probe, takes a snapshot and restores a disposable private RDS instance.</li>
+            <li>A one-off Fargate task checks both the exact probe and Django migration history.</li>
+            <li>The script verifies temporary DB and snapshot absence and requests task-definition cleanup; the rehearsal read-back found no active restore task definitions.</li>
+            <li>This proves that the backup contained usable application state.</li>
+          </ul>
+          <h4>Transition</h4><p>After proving recovery, I also checked that re-running the infrastructure definition would not create drift.</p>
+          <h4>Likely question</h4><p><b>Does this prove every disaster scenario?</b> No. It proves the documented snapshot-restore path and semantic data checks. It does not claim cross-region disaster recovery.</p>
+        </aside>
+      </section>
+
+      <section class="slide idempotency-slide" id="idempotency" data-title="Idempotency" data-source="docs/DELIVERY_EVIDENCE.md · docs/PRODUCTION_LIFECYCLE.md">
+        <header class="slide-header">
+          <span class="section-tag">11 · Convergence</span>
+          <h2>What happens when Terraform runs again?</h2>
+        </header>
+        <div class="idempotency-hero">
+          <div class="terminal-card" aria-label="Terraform plan result">
+            <div class="terminal-top"><span></span><span></span><span></span><b>terraform plan</b></div>
+            <div class="terminal-body"><span class="prompt">$</span> terraform plan -refresh=true<div class="terminal-gap"></div><strong>No changes.</strong><small>Terraform-managed attributes match the configuration.</small></div>
+          </div>
+          <div class="equals-mark">=</div>
+          <div class="convergence-copy"><span class="label">INFRASTRUCTURE IDEMPOTENCY</span><h3>Managed attributes<br>converge.</h3><p>Service task-definition revisions are deliberately excluded and owned by release automation.</p></div>
+        </div>
+        <div class="concept-separation">
+          <div><span>Infrastructure</span><strong>Terraform converges</strong><small><code>plan → No changes</code></small></div>
+          <div class="not-equal">≠</div>
+          <div><span>Application release</span><strong>Images are immutable</strong><small><code>sha-&lt;commit&gt;</code> identifies a new revision</small></div>
+        </div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>I tested idempotency after the deployment, not only before it.</li>
+            <li>A refreshed Terraform plan reported no changes.</li>
+            <li>This means the Terraform-managed attributes and provider-observed values had converged.</li>
+            <li>Idempotent infrastructure is different from an immutable application release.</li>
+            <li>Terraform can remain unchanged while a new exact-SHA task-definition revision is deployed by release automation.</li>
+          </ul>
+          <h4>Transition</h4><p>With creation, delivery, recovery and convergence tested, the final question is simple: did the complete system work?</p>
+          <h4>Likely question</h4><p><b>Why does Terraform ignore task-definition drift?</b> Because release automation owns post-bootstrap application revisions. Terraform still owns service structure, networking, counts and destruction, so a later apply cannot roll back a newer release.</p>
+        </aside>
+      </section>
+
+      <section class="slide evidence-slide" id="evidence" data-title="Does it work?" data-source="docs/DELIVERY_EVIDENCE.md · revision de3ba39">
+        <header class="slide-header evidence-header">
+          <div><span class="section-tag">12 · Verified evidence</span><h2>Does it work?</h2></div>
+          <div class="yes-mark"><span>PASS</span><small>Verified end-to-end AWS rehearsal</small></div>
+        </header>
+        <div class="evidence-grid">
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Local baseline</strong><small>Docker Compose: 6 running · 4 healthchecked</small><small>homepage 200 · <code>/healthz</code> 200 · RQ job completed</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>AWS deployment</strong><small>2 SHA-tagged images · exact-SHA private migration</small><small>web 2/2 · worker 1/1 · scheduler 1/1 · 2 healthy targets</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Observability & recovery</strong><small>CloudWatch dashboard + 18 alarms read back</small><small>RDS snapshot restored · application probe + Django migration history verified</small></div></div>
+          <div class="evidence-item"><span class="check" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Idempotency & teardown</strong><small><code>No changes</code> for Terraform-managed attributes</small><small>76 runtime resources removed · state returned to zero</small></div></div>
+        </div>
+        <div class="historical-banner"><span>DELIVERY_EVIDENCE.md · de3ba39</span><strong>Evidence captured and documented. Runtime intentionally destroyed after verification to stop recurring cloud cost.</strong></div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>This slide summarizes one historically documented AWS rehearsal; not every raw local plan or command transcript was retained.</li>
+            <li>It proves more than a working homepage: queue execution, immutable images, migration, stable services, load balancer health and monitoring read-back.</li>
+            <li>Recovery and Terraform idempotency were tested before teardown.</li>
+            <li>The guarded destroy removed 76 Terraform-managed runtime resources and the state became empty.</li>
+            <li>The environment is not claimed to be permanently running; it was intentionally removed to stop cost.</li>
+          </ul>
+          <h4>Transition</h4><p>The strongest outcome was not one AWS service—it was the working method I learned.</p>
+          <h4>Likely questions</h4><p><b>Where is this evidence?</b> In <code>docs/DELIVERY_EVIDENCE.md</code>, <code>docs/PRODUCTION_LIFECYCLE.md</code>, the lifecycle scripts, tests, and historical GitHub Actions runs.</p>
+        </aside>
+      </section>
+
+      <section class="slide conclusion-slide" id="learnings" data-title="What I learned" data-source="Project methodology synthesized from repository implementation and evidence">
+        <header class="slide-header">
+          <span class="section-tag">13 · Conclusion</span>
+          <h2>What did I learn about DevOps methodology?</h2>
+        </header>
+        <div class="learning-composition">
+          <div class="learning-list">
+            <div><span>01</span><p><strong>Understand before automating</strong><small>Make behavior visible before encoding it.</small></p></div>
+            <div><span>02</span><p><strong>Work in layers</strong><small>Application → containers → infrastructure → delivery → operations.</small></p></div>
+            <div><span>03</span><p><strong>Keep the platform simple</strong><small>Match the workload and minimize operational overhead.</small></p></div>
+            <div><span>04</span><p><strong>Separate ownership</strong><small>Infrastructure, releases, state and identities need clear boundaries.</small></p></div>
+            <div><span>05</span><p><strong>Prove the lifecycle</strong><small>Verification, recovery, idempotency and teardown are part of delivery.</small></p></div>
+          </div>
+          <div class="closing-statement">
+            <span class="label">FINAL MESSAGE</span>
+            <blockquote>The project was not complete when the application first opened in AWS.</blockquote>
+            <p>It was complete when the runtime could be <b>reproduced</b>, <b>deployed</b> and <b>verified</b>, PostgreSQL state <b>restored</b>, and infrastructure <b>converged</b> and <b>safely removed</b>.</p>
+          </div>
+        </div>
+        <aside class="speaker-notes">
+          <h3>What to say</h3>
+          <ul>
+            <li>The main lesson was a structured way of working, not simply learning AWS service names.</li>
+            <li>Understand behavior, add one layer at a time, and validate every boundary.</li>
+            <li>Choose technology according to the workload, not popularity.</li>
+            <li>Separate infrastructure, releases, credentials and state so changes have clear owners.</li>
+            <li>Treat recovery and destructive operations as designed, testable paths.</li>
+          </ul>
+          <h4>Transition</h4><p>The result is a reproducible process, not a one-time cloud environment. I will close with the repository and open the discussion.</p>
+          <h4>Likely question</h4><p><b>What would you improve next?</b> In an account with the required permissions: enable and test ACM HTTPS, strengthen data-tier availability if the workload justifies the cost, and automate the bootstrap boundary through an approved platform process.</p>
+        </aside>
+      </section>
+
+      <section class="slide closing-slide" id="closing" data-title="Questions?" data-source="github.com/yinon-mitin/Status-Page">
+        <div class="closing-layout">
+          <div class="closing-copy">
+            <h2>Questions?</h2>
+            <p>A reproducible delivery process — from local understanding to verified teardown.</p>
+            <strong>Yinon Mitin</strong>
+            <a class="repo-link" href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer">github.com/yinon-mitin/Status-Page</a>
+          </div>
+          <div class="qr-card">
+            <span class="label">GitHub repository</span>
+            <a href="https://github.com/yinon-mitin/Status-Page" target="_blank" rel="noreferrer"><img src="assets/github-qr.png" width="400" height="400" alt="QR for https://github.com/yinon-mitin/Status-Page"></a>
+          </div>
+        </div>
+        <a class="appendix-entry" href="#appendix-platform">Explore appendix →</a>
+        <aside class="speaker-notes">
+          <h3>Discussion</h3>
+          <ul>
+            <li>Thank the jury and invite questions; the QR and link open the project repository.</li>
+            <li>For platform, ownership, networking or release questions, open the matching appendix.</li>
+            <li>For proof or scope questions, distinguish the historical AWS rehearsal from the intentionally removed runtime.</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="slide appendix-slide" id="appendix-platform" data-title="Appendix: ECS vs alternatives" data-source="docs/ARCHITECTURE.md">
+        <header class="slide-header"><div><span class="appendix-tag">APPENDIX A</span><h2>ECS Fargate vs alternatives</h2></div></header>
+        <table class="comparison-table">
+          <thead><tr><th>Decision factor</th><th>EC2</th><th class="selected-col">ECS Fargate</th><th>EKS</th></tr></thead>
+          <tbody>
+            <tr><th>Host management</th><td>Required</td><td class="selected-col">No</td><td>Managed control plane; worker model still matters</td></tr>
+            <tr><th>Operational surface</th><td>Medium</td><td class="selected-col">Low</td><td>High</td></tr>
+            <tr><th>Container orchestration</th><td>Self-managed choices</td><td class="selected-col">AWS-managed</td><td>Kubernetes</td></tr>
+            <tr><th>Fit for this workload</th><td>Possible</td><td class="selected-col"><b>Strong</b></td><td>More capability than needed</td></tr>
+            <tr><th>When I would choose it</th><td>Custom host needs</td><td class="selected-col">Small AWS-native container workload</td><td>Kubernetes ecosystem or organizational standard</td></tr>
+          </tbody>
+        </table>
+        <div class="appendix-note">No precise price comparison is claimed; the decision is based on workload fit and operational responsibility.</div>
+        <aside class="speaker-notes"><h3>Jury support</h3><ul><li>ECS Fargate removes EC2 host maintenance.</li><li>EKS remains valid when Kubernetes capabilities or organizational standards justify it.</li><li>Cost depends on runtime and operating model; this deck avoids unverified numeric pricing.</li></ul></aside>
+      </section>
+
+      <section class="slide appendix-slide" id="appendix-ownership" data-title="Appendix: Ownership boundaries" data-source="docs/PRODUCTION_LIFECYCLE.md · terraform/main.tf">
+        <header class="slide-header"><div><span class="appendix-tag">APPENDIX B</span><h2>Who owns infrastructure—and who owns releases?</h2></div></header>
+        <div class="ownership-layout">
+          <div class="owner-card terraform-owner"><img src="assets/logos/terraform-original.svg" alt="Terraform"><h3>Terraform owns structure</h3><ul><li>VPC, subnets and security groups</li><li>ALB, RDS, Redis and endpoints</li><li>ECS service structure and desired counts</li><li>Logs, dashboard and alarms</li><li>Service destruction</li></ul></div>
+          <div class="ownership-contract"><span>SHARED CONTRACT</span><strong>ECS service</strong><div>Terraform ignores only<br><code>task_definition</code> drift</div><b aria-hidden="true"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M6 13h28l-7-7m7 21H6l7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></b><div>Release automation registers<br>and deploys exact revisions</div></div>
+          <div class="owner-card release-owner"><img src="assets/logos/github-original.svg" alt="GitHub"><h3>Release automation owns revision</h3><ul><li>Exact-SHA application image</li><li>Exact-SHA NGINX image</li><li>Migration evidence</li><li>Task-definition revision</li><li>Rollout and rollback attempt</li></ul></div>
+        </div>
+        <div class="ownership-answer"><b>Why?</b> A later infrastructure apply must not silently roll a newer application release backward.</div>
+        <aside class="speaker-notes"><h3>Jury support</h3><ul><li>This is a deliberate split, not unmanaged drift.</li><li>Terraform still owns counts, networking, creation and destruction.</li><li>Destroy also cleans workflow-created exact production task-definition families.</li></ul></aside>
+      </section>
+
+      <section class="slide appendix-slide" id="appendix-network" data-title="Appendix: Network flow" data-source="terraform/network.tf · terraform/data_plane.tf">
+        <header class="slide-header"><div><span class="appendix-tag">APPENDIX C</span><h2>Network and security-group flow</h2></div></header>
+        <div class="network-flow">
+          <div class="network-row"><span class="origin internet">Internet</span><i>→</i><span class="sg public-sg">ALB security group</span><b>TCP 80</b><small>public HTTP ingress</small></div>
+          <div class="network-row"><span class="origin alb">ALB SG</span><i>→</i><span class="sg app-sg">ECS security group</span><b>TCP 80</b><small>web task only</small></div>
+          <div class="network-row"><span class="origin ecs">ECS SG</span><i>→</i><span class="sg data-sg">RDS security group</span><b>TCP 5432</b><small>PostgreSQL</small></div>
+          <div class="network-row"><span class="origin ecs">ECS SG</span><i>→</i><span class="sg data-sg">Redis security group</span><b>TCP 6379</b><small>queue + cache</small></div>
+          <div class="network-row"><span class="origin ecs">ECS SG</span><i>→</i><span class="sg endpoint-sg">Endpoint security group</span><b>TCP 443</b><small>ECR · Logs · Secrets</small></div>
+        </div>
+        <div class="network-principles"><span>Security groups reference security groups</span><span>No task public IPs</span><span>RDS <b>publicly_accessible = false</b></span><span>No baseline NAT Gateway</span></div>
+        <div class="appendix-note warning">The demo used HTTP. Optional ACM-request and HTTPS-listener resources exist, but certificate validation, redirect, secure application settings and the browser path were not implemented or verified.</div>
+        <aside class="speaker-notes"><h3>Jury support</h3><ul><li>The data services are reachable only from the ECS security group.</li><li>The ALB is the only Internet-facing runtime component.</li><li>Port 443 on the ALB security group is prepared, but the verified demo used HTTP because no certificate was available.</li></ul></aside>
+      </section>
+
+      <section class="slide appendix-slide" id="appendix-release" data-title="Appendix: OIDC release controls" data-source=".github/workflows/publish-ecr.yml · scripts/production_release.sh">
+        <header class="slide-header"><div><span class="appendix-tag">APPENDIX D</span><h2>OIDC and release controls</h2></div></header>
+        <div class="control-stack">
+          <div class="control-row"><span>1</span><strong>Fail-closed configuration</strong><p>Exact repository, main branch, account, region, resource names and required variables.</p></div>
+          <div class="control-row"><span>2</span><strong>Publisher identity</strong><p>Job-level OIDC permission; restricted role publishes immutable ECR images.</p></div>
+          <div class="control-row"><span>3</span><strong>Migration evidence</strong><p><code>MIGRATION_EVIDENCE_SHA</code> must equal the workflow SHA before deploy.</p></div>
+          <div class="control-row"><span>4</span><strong>Approval boundary</strong><p>GitHub Environment approval is a separate job without AWS credentials.</p></div>
+          <div class="control-row"><span>5</span><strong>Deployer identity</strong><p>A separate branch-bound OIDC role registers task definitions and updates ECS services.</p></div>
+          <div class="control-row"><span>6</span><strong>Post-deploy verification</strong><p>Web stabilizes first; all services stabilize; public health endpoint must pass.</p></div>
+        </div>
+        <div class="appendix-note">The production path is opt-in. After teardown, <code>PRODUCTION_ENABLED=false</code> pauses publication and deployment.</div>
+        <aside class="speaker-notes"><h3>Jury support</h3><ul><li>The approval job is intentionally separate from the deployer job.</li><li>The deployer token remains compatible with the branch-bound OIDC trust.</li><li>No long-lived AWS access keys are required in GitHub.</li></ul></aside>
+      </section>
+
+      <section class="slide appendix-slide" id="appendix-sources" data-title="Appendix: Sources and boundaries" data-source="Repository source is the primary source of truth">
+        <header class="slide-header"><div><span class="appendix-tag">APPENDIX E</span><h2>Source material and scope boundaries</h2></div></header>
+        <div class="sources-layout">
+          <div class="source-group"><h3>Repository evidence</h3><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/README.md" target="_blank" rel="noreferrer">README.md</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/UPSTREAM.md" target="_blank" rel="noreferrer">UPSTREAM.md</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/docs/ARCHITECTURE.md" target="_blank" rel="noreferrer">docs/ARCHITECTURE.md</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/docs/PRODUCTION_LIFECYCLE.md" target="_blank" rel="noreferrer">docs/PRODUCTION_LIFECYCLE.md</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/docs/DELIVERY_EVIDENCE.md" target="_blank" rel="noreferrer">docs/DELIVERY_EVIDENCE.md</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/docs/TECHNOLOGY_INDEX.md" target="_blank" rel="noreferrer">docs/TECHNOLOGY_INDEX.md</a></div>
+          <div class="source-group"><h3>Executable source</h3><a href="https://github.com/yinon-mitin/Status-Page/tree/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/terraform" target="_blank" rel="noreferrer">terraform/</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/.github/workflows/ci.yml" target="_blank" rel="noreferrer">.github/workflows/ci.yml</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/.github/workflows/publish-ecr.yml" target="_blank" rel="noreferrer">.github/workflows/publish-ecr.yml</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/scripts/production_backup_restore_test.sh" target="_blank" rel="noreferrer">restore rehearsal script</a><a href="https://github.com/yinon-mitin/Status-Page/blob/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/scripts/production_destroy.sh" target="_blank" rel="noreferrer">guarded destroy script</a><a href="https://github.com/yinon-mitin/Status-Page/tree/a9cd8682cf4df53ee8c0cf723869c7a46f9ddabc/tests" target="_blank" rel="noreferrer">automation contract tests</a></div>
+          <div class="source-group"><h3>Authoritative concepts</h3><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html" target="_blank" rel="noreferrer">AWS · Fargate for ECS</a><a href="https://docs.github.com/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect" target="_blank" rel="noreferrer">GitHub · OIDC security</a><a href="https://developer.hashicorp.com/terraform/language/state" target="_blank" rel="noreferrer">HashiCorp · Terraform state</a><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html" target="_blank" rel="noreferrer">AWS · RDS snapshot restore</a></div>
+        </div>
+        <div class="boundary-grid">
+          <div><span>CURRENT RUNTIME</span><strong>Intentionally destroyed after rehearsal</strong></div>
+          <div><span>HTTPS</span><strong>Partial Terraform resources only; the complete browser path was not implemented</strong></div>
+          <div><span>DATA RECOVERY</span><strong>RDS restore-tested; Redis restore not tested; both demo services are single-AZ</strong></div>
+          <div><span>UPSTREAM</span><strong>Archived v2.5.1 baseline, preserved with provenance</strong></div>
+        </div>
+        <aside class="speaker-notes"><h3>Jury support</h3><ul><li>Project-specific claims come from repository source and historical evidence.</li><li>Source code takes precedence if documentation and implementation diverge.</li><li>The evidence is historical and does not claim a permanently running environment.</li></ul></aside>
+      </section>
+
+    </div>
+  </main>
+
+  <noscript><p class="no-script">JavaScript is required for slide navigation. Print view remains available.</p></noscript>
+  <script src="js/deck.js"></script>
+</body>
+</html>

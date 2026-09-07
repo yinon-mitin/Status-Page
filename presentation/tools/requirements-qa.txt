@@ -1,0 +1,6 @@
+# Optional QA/regeneration tools only. The static presentation needs none of these.
+playwright==1.60.0
+Pillow==11.3.0
+qrcode==7.4.2
+opencv-python-headless==5.0.0.93
+pypdf==6.17.0
