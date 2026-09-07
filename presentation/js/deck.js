@@ -147,7 +147,15 @@
   }
   function next() { show(Math.min(current + 1, sectionBounds().end), 1); }
   function previous() { show(Math.max(current - 1, sectionBounds().start), -1); }
-  function returnToMain() { show(closingIndex, -1); }
+  function returnToMain() {
+    show(closingIndex, -1);
+    // Restore context after the appendix, not focus to a now-hidden control.
+    // A heading lets Space resume navigation rather than activate another link.
+    const heading = slides[closingIndex].querySelector('h2');
+    heading.tabIndex = -1;
+    heading.classList.add('return-focus-target');
+    heading.focus({ preventScroll: true });
+  }
 
   function toggleNotes(force) {
     const open = typeof force === 'boolean' ? force : !document.body.classList.contains('notes-open');
@@ -188,10 +196,7 @@
     toggleHelp(false);
     helpButton.focus({ preventScroll: true });
   });
-  returnButton.addEventListener('click', () => {
-    returnToMain();
-    helpButton.focus({ preventScroll: true });
-  });
+  returnButton.addEventListener('click', returnToMain);
 
   progress.addEventListener('click', (event) => {
     if (event.detail === 0) { next(); return; }

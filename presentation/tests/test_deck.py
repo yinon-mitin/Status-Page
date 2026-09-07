@@ -95,6 +95,35 @@ class DeckTests(unittest.TestCase):
         self.page.keyboard.press('ArrowLeft')
         self.assertEqual(self.slide(), 'learnings')
 
+    def test_appendix_return_focus_and_resume_keys(self):
+        p = self.page
+        for action in ['click', 'End', 'Escape']:
+            with self.subTest(action=action):
+                p.goto(URL + '#appendix-platform')
+                p.locator('#return-main').focus()
+                if action == 'click':
+                    p.locator('#return-main').click()
+                else:
+                    p.keyboard.press(action)
+                self.assertEqual(self.slide(), 'closing')
+                self.assertTrue(p.locator('#closing h2').evaluate('(el) => el === document.activeElement'))
+                self.assertEqual(p.locator('#closing h2').get_attribute('tabindex'), '-1')
+                self.assertFalse(p.locator('#return-main').is_visible())
+                self.assertFalse(p.locator('#help').is_visible())
+                self.assertFalse(p.locator('#help-toggle').evaluate('(el) => el === document.activeElement'))
+                p.keyboard.press('Space')
+                self.assertEqual(self.slide(), 'closing')
+                p.keyboard.press('PageUp')
+                self.assertEqual(self.slide(), 'learnings')
+                p.keyboard.press('ArrowRight')
+                self.assertEqual(self.slide(), 'closing')
+                p.keyboard.press('n')
+                self.assertIn('notes-open', p.locator('body').get_attribute('class'))
+                p.keyboard.press('Escape')
+                p.keyboard.press('Home')
+                self.assertEqual(self.slide(), 'title')
+                self.assertEqual(p.evaluate('[scrollX, scrollY]'), [0, 0])
+
     def test_native_buttons_and_link_focus(self):
         p = self.page
         p.locator('#notes-toggle').focus()
@@ -147,6 +176,27 @@ class DeckTests(unittest.TestCase):
         chrome = self.page.locator('#chrome').bounding_box()
         self.assertGreaterEqual(chrome['y'], panel['y'] + panel['height'])
         self.assertTrue(self.page.locator('#notes-close').is_visible())
+
+    def test_chrome_footer_geometry_and_print(self):
+        p = self.page
+        ids = p.locator('.slide').evaluate_all('ss => ss.map(s => s.id)')
+        for width, height in [(1280, 720), (1366, 768), (1920, 1080)]:
+            p.set_viewport_size({'width': width, 'height': height})
+            for sid in ids:
+                with self.subTest(viewport=width, slide=sid):
+                    p.evaluate('(id) => { location.hash = id; }', sid)
+                    p.wait_for_function('(id) => document.querySelector(".slide.active").id === id', arg=sid)
+                    source = p.locator('#source-chip').bounding_box()
+                    chrome = p.locator('#chrome').bounding_box()
+                    self.assertLessEqual(source['x'] + source['width'], chrome['x'] - 8)
+                    self.assertGreaterEqual(source['y'], height - 64)
+                    self.assertLessEqual(source['y'] + source['height'], height - 5)
+                    self.assertEqual(p.locator('#source-chip').evaluate('(el) => getComputedStyle(el).opacity'), '1')
+                    self.assertGreaterEqual(p.locator('#source-chip').evaluate('(el) => parseFloat(getComputedStyle(el).fontSize)'), 13)
+        p.emulate_media(media='print')
+        for selector in ['#chrome', '#progress', '#source-chip', '#notes-panel', '#help']:
+            self.assertFalse(p.locator(selector).is_visible())
+        self.assertEqual(p.locator('.slide:visible').count(), len(ids))
 
     def test_main_talk_stops_before_appendix(self):
         last_main = self.page.locator('.slide:not(.appendix-slide)').last.get_attribute('id')

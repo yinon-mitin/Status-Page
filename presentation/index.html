@@ -131,11 +131,11 @@
               <div><b>04</b><span><strong>Observe behavior</strong><small>startup order, networking, health, queue work</small></span></div>
             </div>
           </div>
-          <div class="compose-system" aria-label="Local Docker Compose architecture">
-            <div class="compose-title"><span>LOCAL / DOCKER COMPOSE</span><b>6 services</b></div>
-            <div class="compose-row">
+          <div class="compose-system" aria-label="Local Docker Compose service inventory, not a dependency diagram">
+            <div class="compose-title"><span>COMPOSE / SERVICE INVENTORY</span><b>6 services</b></div>
+            <div class="compose-row split">
               <div class="service-card proxy"><img src="assets/logos/nginx-original.svg" alt=""><strong>NGINX</strong><small>:8081 → :80</small></div>
-              <span class="flow-arrow">→</span>
+
               <div class="service-card app"><img src="assets/logos/django-plain.svg" alt=""><strong>Web</strong><small>Gunicorn · :8001</small></div>
             </div>
             <div class="compose-row split">
@@ -215,46 +215,75 @@
         <div class="architecture-canvas">
           <svg viewBox="0 0 1760 720" role="img" aria-labelledby="arch-title arch-desc">
             <title id="arch-title">Status-Page AWS architecture</title>
-            <desc id="arch-desc">Users reach a public ALB, which forwards to private ECS web tasks. Web and background services use private PostgreSQL and Redis. GitHub Actions authenticates with OIDC, publishes to ECR, and deploys to ECS. CloudWatch receives logs and metrics.</desc>
+            <desc id="arch-desc">Delivery and AWS regional services sit outside the VPC: GitHub Actions assumes separate publish and deploy roles through OIDC, publishes immutable ECR images, and rolls out their revision through the ECS control plane. Dashed control-plane arrows differ from solid private-access paths. Users reach the public ALB and private web tasks. A separate dependency key below the VPC specifies Web and Worker access to PostgreSQL and Redis, and Scheduler access to Redis only. All task roles share private AWS access via VPC endpoints for image pulls, logs and secrets. Data services are single-AZ; two web tasks do not assert one task per AZ. Optional Cloudflare DNS is a separate dashed node.</desc>
             <defs>
-              <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7e91a8"/></marker>
-              <marker id="arrowAccent" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#59c9c2"/></marker>
+              <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" viewBox="0 0 12 12" refX="12" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7e91a8"/></marker>
+              <marker id="arrowAccent" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" viewBox="0 0 12 12" refX="12" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#59c9c2"/></marker>
               <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".22"/></filter>
             </defs>
-            <rect class="vpc-boundary" x="350" y="42" width="1380" height="620" rx="24"/>
-            <text class="boundary-title" x="382" y="80">AWS VPC · SUBNETS IN AZ A + AZ B</text>
-            <rect class="zone public-zone" x="390" y="104" width="300" height="502" rx="18"/>
-            <rect class="zone app-zone" x="730" y="104" width="520" height="502" rx="18"/>
-            <rect class="zone data-zone" x="1290" y="104" width="400" height="502" rx="18"/>
-            <text class="zone-title" x="420" y="143">PUBLIC SUBNETS</text>
-            <text class="zone-title" x="760" y="143">PRIVATE APPLICATION SUBNETS</text>
-            <text class="zone-title" x="1320" y="143">PRIVATE DATA SUBNETS</text>
+            <!-- Regional AWS services and delivery control are NOT subnet resources. -->
+            <rect id="arch-ops-layer" x="5" y="5" width="1740" height="145" rx="18" fill="rgba(89,201,194,.025)" stroke="rgba(89,201,194,.3)"/>
+            <text class="boundary-title" x="25" y="32" style="font-size:20px;fill:#59c9c2">DELIVERY / OPS · OUTSIDE VPC</text>
+            <path class="connector delivery" d="M275 94 H340" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery" d="M620 94 H720" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M1000 94 H1080" marker-end="url(#arrowAccent)"/>
+            <g class="node ops" transform="translate(25 50)"><rect width="250" height="80" rx="13"/><circle cx="34" cy="38" r="22"/><text class="node-code" x="34" y="43">GH</text><text x="68" y="34" style="font-size:24px">GitHub Actions</text><text class="node-sub" x="68" y="63" style="font-size:24px">Build + release</text></g>
+            <g class="node ops" transform="translate(340 50)"><rect width="280" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">OIDC → AWS roles</text><text class="node-sub" x="20" y="63" style="font-size:24px">Publish / deploy</text></g>
+            <g id="arch-ecr" class="node ops" transform="translate(720 50)"><rect width="280" height="80" rx="13"/><circle cx="34" cy="38" r="22"/><text class="node-code" x="34" y="43">ECR</text><text x="68" y="34" style="font-size:24px">ECR images</text><text class="node-sub" x="68" y="63" style="font-size:24px">sha-&lt;commit&gt;</text></g>
+            <g class="node ops" transform="translate(1080 50)"><rect width="300" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">ECS rollout</text><text class="node-sub" x="20" y="63" style="font-size:24px">Deploy role + revision</text></g>
+            <g id="arch-cloudwatch" class="node ops" transform="translate(1450 50)"><rect width="275" height="80" rx="13"/><text x="20" y="34" style="font-size:24px">CloudWatch</text><text class="node-sub" x="20" y="63" style="font-size:24px">Logs · metrics · alarms</text></g>
 
-            <path class="connector main" d="M220 225 H405" marker-end="url(#arrowAccent)"/>
-            <path class="connector main" d="M685 225 H795" marker-end="url(#arrowAccent)"/>
-            <path class="connector main" d="M1095 225 H1360" marker-end="url(#arrowAccent)"/>
-            <path class="connector" d="M1095 235 C1210 235 1210 400 1360 400" marker-end="url(#arrow)"/>
-            <path class="connector" d="M1095 375 H1360" marker-end="url(#arrow)"/>
-            <path class="connector" d="M1095 365 C1200 365 1218 250 1360 225" marker-end="url(#arrow)"/>
-            <path class="connector" d="M1095 520 C1210 520 1210 400 1360 400" marker-end="url(#arrow)"/>
-            <path class="connector delivery" d="M220 500 H405" marker-end="url(#arrowAccent)"/>
-            <path class="connector delivery" d="M685 500 H745" marker-end="url(#arrowAccent)"/>
+            <rect id="arch-vpc" class="vpc-boundary" x="235" y="235" width="1500" height="390" rx="20"/>
+            <text class="boundary-title" x="255" y="270" style="font-size:20px">AWS VPC</text>
+            <text class="boundary-title" x="255" y="302" style="font-size:18px;letter-spacing:0">Subnet topology: 2 AZs</text>
+            <rect id="arch-access-zone" x="590" y="250" width="1130" height="90" rx="14" fill="rgba(89,201,194,.035)" stroke="rgba(89,201,194,.3)"/>
+            <text class="zone-title" x="610" y="280" style="font-size:20px;fill:#59c9c2">PRIVATE AWS ACCESS</text>
+            <text class="node-sub" x="610" y="315" style="font:24px var(--sans);fill:#9fb0c2">All tasks · no baseline NAT</text>
+            <g id="arch-endpoints" class="node ops" transform="translate(1100 263)"><rect width="590" height="64" rx="12"/><text x="20" y="27" style="font-size:24px">VPC endpoints</text><text class="node-sub" x="20" y="53" style="font-size:24px">ECR + S3 image layers · Logs · Secrets</text></g>
+            <!-- Solid private-access arrows point from caller toward AWS service. -->
+            <path class="connector" d="M1410 263 V200 H1022 Q1010 216 998 200 H860 V130" marker-end="url(#arrow)"/>
+            <text x="1170" y="193" style="font:24px var(--sans);fill:#9fb0c2">Private image pull</text>
+            <path class="connector" d="M1600 263 V130" marker-end="url(#arrow)"/>
+            <text x="1620" y="193" style="font:24px var(--sans);fill:#9fb0c2">Logs</text>
 
+            <rect id="arch-public-zone" class="zone public-zone" x="250" y="355" width="290" height="195" rx="16"/>
+            <rect id="arch-app-zone" class="zone app-zone" x="590" y="355" width="460" height="260" rx="16"/>
+            <rect id="arch-data-zone" class="zone data-zone" x="1100" y="355" width="620" height="260" rx="16"/>
+            <text class="zone-title" x="270" y="389" style="font-size:20px">PUBLIC SUBNETS</text>
+            <text class="zone-title" x="610" y="385" style="font-size:20px">PRIVATE APP · ECS FARGATE</text>
+            <text class="zone-title" x="1120" y="385" style="font-size:20px">PRIVATE DATA · SINGLE-AZ SERVICES</text>
+            <g id="arch-rollout-target" class="node application" transform="translate(620 395)"><rect width="350" height="42" rx="8"/><text x="16" y="29" style="font-size:24px">Rollout target · all 3 roles</text></g>
+            <path class="connector delivery dashed" d="M1230 130 V166 H1010 V414 H970" marker-end="url(#arrowAccent)"/>
+            <text x="350" y="193" style="font:24px var(--sans);fill:#59c9c2">Dashed = deployment control</text>
+            <path class="connector delivery dashed" d="M620 414 H603 V466 M603 484 V579"/>
+            <path class="connector delivery dashed" d="M603 495 H620" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M603 533 H620" marker-end="url(#arrowAccent)"/>
+            <path class="connector delivery dashed" d="M603 579 H620" marker-end="url(#arrowAccent)"/>
 
-            <g class="node external" transform="translate(20 168)" filter="url(#shadow)"><rect width="200" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><path d="M29 64c3-14 20-14 23 0M40 41a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/><text x="78" y="46">USER</text><text class="node-sub" x="78" y="73">HTTP request</text></g>
-            <g class="node public" transform="translate(405 168)" filter="url(#shadow)"><rect width="280" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ALB</text><text x="78" y="42">Load balancer</text><text class="node-sub" x="78" y="70">Internet-facing · 2 AZs</text></g>
-            <g class="node application primary" transform="translate(795 168)" filter="url(#shadow)"><rect width="300" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">WEB</text><text x="86" y="42">ECS Fargate · Web</text><text class="node-sub" x="86" y="70">2 tasks · 2 private subnets</text></g>
-            <g class="node application" transform="translate(795 322)" filter="url(#shadow)"><rect width="300" height="106" rx="16"/><circle cx="44" cy="41" r="22"/><text class="node-code" x="44" y="48">W</text><text x="86" y="40">RQ Worker</text><text class="node-sub" x="86" y="68">1 task · async jobs</text></g>
-            <g class="node application" transform="translate(795 472)" filter="url(#shadow)"><rect width="300" height="96" rx="16"/><circle cx="44" cy="38" r="22"/><text class="node-code" x="44" y="45">S</text><text x="86" y="38">RQ Scheduler</text><text class="node-sub" x="86" y="65">1 task · periodic jobs</text></g>
-            <g class="node data" transform="translate(1360 168)" filter="url(#shadow)"><rect width="300" height="114" rx="16"/><circle cx="44" cy="43" r="23"/><text class="node-code" x="44" y="50">DB</text><text x="86" y="42">RDS PostgreSQL</text><text class="node-sub" x="86" y="70">Private · encrypted</text></g>
-            <g class="node data" transform="translate(1360 345)" filter="url(#shadow)"><rect width="300" height="108" rx="16"/><circle cx="44" cy="41" r="23"/><text class="node-code" x="44" y="48">R</text><text x="86" y="40">ElastiCache Redis</text><text class="node-sub" x="86" y="68">Queue + cache</text></g>
-            <g class="node ops" transform="translate(20 443)" filter="url(#shadow)"><rect width="200" height="114" rx="16"/><circle cx="40" cy="43" r="21"/><text class="node-code" x="40" y="50">GH</text><text x="78" y="43">GitHub</text><text class="node-sub" x="78" y="70">Actions · OIDC</text></g>
-            <g class="node ops" transform="translate(405 443)" filter="url(#shadow)"><rect width="280" height="114" rx="16"/><circle cx="43" cy="43" r="23"/><text class="node-code" x="43" y="50">ECR</text><text x="80" y="42">Immutable images</text><text class="node-sub" x="80" y="70">sha-&lt;commit&gt;</text></g>
-            <g class="node support" transform="translate(755 585)"><rect width="350" height="70" rx="13"/><text x="175" y="29">VPC endpoints</text><text class="node-sub center" x="175" y="53">all tasks · no baseline NAT</text></g>
-            <g class="node support" transform="translate(1340 535)"><rect width="310" height="74" rx="13"/><text x="155" y="30">CloudWatch</text><text class="node-sub center" x="155" y="54">all tasks · logs · metrics</text></g>
-            <text class="oidc-label" x="255" y="484">OIDC</text>
-            <image href="assets/logos/cloudflare-original.svg" x="250" y="181" width="30" height="30"/>
-            <text class="request-label" x="288" y="201">OPTIONAL DNS</text>
+            <g class="node external" transform="translate(10 435)"><rect width="190" height="95" rx="14"/><circle cx="30" cy="30" r="19"/><path d="M20 45c3-12 17-12 20 0M30 29a8 8 0 1 0 0-16 8 8 0 0 0 0 16"/><text x="62" y="37" style="font-size:24px">USER</text><text class="node-sub" x="18" y="73" style="font-size:24px">HTTP request</text></g>
+            <g class="node public" transform="translate(265 435)"><rect width="260" height="95" rx="14"/><circle cx="33" cy="32" r="22"/><text class="node-code" x="33" y="37">ALB</text><text x="68" y="38" style="font-size:24px">Load balancer</text><text class="node-sub" x="18" y="74" style="font-size:24px">Internet-facing · 2 AZs</text></g>
+            <path class="connector main" d="M200 475 H265" marker-end="url(#arrowAccent)"/>
+            <path class="connector main" d="M525 475 H620" marker-end="url(#arrowAccent)"/>
+            <g class="node external" transform="translate(10 280)"><rect width="190" height="90" rx="14" style="stroke-dasharray:6 6"/><image href="assets/logos/cloudflare-original.svg" x="15" y="14" width="32" height="32"/><text x="58" y="37" style="font-size:24px">DNS</text><text class="node-sub" x="15" y="70" style="font-size:24px">Optional</text></g>
+            <path class="connector dashed" d="M105 435 V370" marker-end="url(#arrow)"/>
+
+            <g id="arch-web" class="node application primary" transform="translate(620 445)"><rect width="410" height="60" rx="13"/><circle cx="34" cy="30" r="22"/><text class="node-code" x="34" y="35">WEB</text><text x="70" y="25" style="font-size:24px">Web · 2 tasks</text><text class="node-sub" x="70" y="50" style="font-size:24px">NGINX + application image</text></g>
+            <g id="arch-worker" class="node application" transform="translate(620 513)"><rect width="410" height="40" rx="10"/><text class="node-code" x="34" y="26">W</text><text x="70" y="28" style="font-size:24px">RQ Worker · 1 task</text></g>
+            <g id="arch-scheduler" class="node application" transform="translate(620 560)"><rect width="410" height="38" rx="10"/><text class="node-code" x="34" y="25">S</text><text x="70" y="27" style="font-size:24px">RQ Scheduler · 1 task</text></g>
+            <path class="connector" d="M1030 475 H1070 M1030 533 H1070 M1030 579 H1070 V295 H1100" marker-end="url(#arrow)"/>
+            <circle cx="1070" cy="475" r="5" fill="#71859b"/><circle cx="1070" cy="533" r="5" fill="#71859b"/>
+            <g id="arch-postgresql" class="node data" transform="translate(1120 425)"><rect width="280" height="120" rx="14"/><circle cx="34" cy="34" r="22"/><text class="node-code" x="34" y="39">DB</text><text x="70" y="39" style="font-size:24px">RDS PostgreSQL</text><text class="node-sub" x="20" y="77" style="font-size:24px">System of record</text><text class="node-sub" x="20" y="106" style="font-size:24px">Private · encrypted</text></g>
+            <g id="arch-redis" class="node data" transform="translate(1420 425)"><rect width="280" height="120" rx="14"/><circle cx="34" cy="34" r="22"/><text class="node-code" x="34" y="39">R</text><text x="70" y="39" style="font-size:24px">ElastiCache Redis</text><text class="node-sub" x="20" y="77" style="font-size:24px">Queue + cache</text><text class="node-sub" x="20" y="106" style="font-size:24px">Private · encrypted</text></g>
+            <!-- Dependency key outside all placement boundaries replaces crossing runtime edges. -->
+            <g id="arch-dependency-key" transform="translate(250 642)">
+              <rect width="1470" height="68" rx="12" fill="rgba(173,156,240,.035)" stroke="rgba(173,156,240,.3)"/>
+              <text class="zone-title" x="20" y="25" style="font-size:20px">RUNTIME DATA DEPENDENCIES</text>
+              <g style="font:24px var(--sans);fill:#dce6ef">
+                <text x="20" y="59">Web → PostgreSQL + Redis</text>
+                <text x="510" y="59">Worker → PostgreSQL + Redis</text>
+                <text x="1040" y="59">Scheduler → Redis</text>
+              </g>
+            </g>
           </svg>
         </div>
         <div class="architecture-note"><b>Public surface:</b> only the ALB. <b>Compute and data:</b> private. <b>AWS API access:</b> VPC endpoints. <b>State:</b> managed outside containers.</div>
@@ -287,13 +316,15 @@
             <div class="loop-node actual"><span>03</span><strong>Converge</strong><small>AWS provider read-back</small></div>
             <div class="loop-return">re-run after convergence<br>No changes</div>
           </div>
-          <div class="iac-layers">
-            <span class="label">DISPOSABLE RUNTIME · TERRAFORM-MANAGED</span>
-            <div class="layer"><span>Network</span><b>VPC · 6 subnets · SGs · endpoints · ALB</b></div>
-            <div class="layer"><span>Data</span><b>RDS · Redis · managed DB secret policy</b></div>
-            <div class="layer"><span>Compute</span><b>ECR · ECS cluster · tasks · services</b></div>
-            <div class="layer"><span>Operations</span><b>Logs · dashboard · 18 alarms · optional alerts</b></div>
-            <div class="state-chip"><span>External bootstrap · training-account permissions</span><strong>S3 state bucket · four IAM roles · Django secret</strong></div>
+          <div class="iac-ownership">
+            <div class="iac-layers" aria-label="Terraform-managed disposable runtime">
+              <span class="label">TERRAFORM-MANAGED DISPOSABLE RUNTIME</span>
+              <div class="layer"><span>Network</span><b>VPC · 6 subnets · SGs · endpoints · ALB</b></div>
+              <div class="layer"><span>Data</span><b>RDS · Redis · managed DB secret policy</b></div>
+              <div class="layer"><span>Compute</span><b>ECR · ECS cluster · tasks · services</b></div>
+              <div class="layer"><span>Operations</span><b>Logs · dashboard · 18 alarms · optional alerts</b></div>
+            </div>
+            <div class="bootstrap-boundary" aria-label="External one-time bootstrap, outside Terraform ownership"><span>EXTERNAL / ONE-TIME BOOTSTRAP</span><strong>S3 state bucket · four IAM roles · Django secret</strong><small>Separate ownership · training-account permissions</small></div>
           </div>
         </div>
         <div class="guard-row"><span>Terraform create/destroy paths check</span><b>account</b><b>clean exact source</b><b>private inputs</b><b>saved-plan shape</b></div>
@@ -321,7 +352,9 @@
             <span class="lane-label">HUMAN</span>
             <div class="identity-node person"><span>YM</span><strong>Operator</strong><small>local lifecycle scripts</small></div>
             <i>→</i>
-            <div class="identity-node credential"><span>CLI</span><strong>Approved AWS profile</strong><small>operator-managed credentials</small></div>
+            <div class="human-sso"><strong>SSO / IAM Identity Center</strong><small>Intended credential source<br>External to repository evidence</small></div>
+            <i>→</i>
+            <div class="identity-node credential"><span>CLI</span><strong>AWS CLI profile</strong><small>approved named profile</small></div>
             <i>→</i>
             <div class="identity-node aws"><span>AWS</span><strong>Approved account</strong><small>exact account check</small></div>
           </div>
@@ -339,7 +372,7 @@
           <div><span>Network</span><strong>ALB public · tasks/data private</strong></div>
           <div><span>Repository</span><strong>CI + complete-history Gitleaks scan</strong></div>
         </div>
-        <p class="sso-boundary">Intended human access: SSO / IAM Identity Center → CLI profile. Credential source is not proven by the repository.</p>
+
         <div class="key-answer"><span>Where are the permanent AWS keys in GitHub?</span><strong>They are not required.</strong></div>
         <aside class="speaker-notes">
           <h3>What to say</h3>

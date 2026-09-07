@@ -75,6 +75,8 @@ progress and swipe navigation. Choose **Explore appendix** on that screen to ent
 
 The appendix counter is separate (`A 1 / 5`). Its **Q&A** button or **End** returns
 immediately to Questions?; **Escape** also returns when no overlay is open.
+Returning places programmatic focus on the Q&A heading, not on an unrelated
+control. Arrow/page keys remain usable immediately.
 Direct appendix fragment links remain supported. Printing includes both sections.
 
 ## QR asset
@@ -104,6 +106,7 @@ source /tmp/status-page-deck-qa/bin/activate
 python -m pip install -r presentation/tools/requirements-qa.txt
 python -m playwright install chromium
 python presentation/tests/test_deck.py
+python presentation/tests/test_semantic_geometry.py
 DECK_URL=http://localhost:8000/ python presentation/tests/test_deck.py
 python presentation/tools/qa_deck.py http://localhost:8000/ /tmp/status-page-deck-local
 ```
@@ -114,6 +117,11 @@ The layout audit screenshots every slide at **1920×1080, 1366×768 and 1280×72
 checks idle/hover text bounds, SVG bounds, assets, footer overlap and browser errors,
 decodes the rendered QR at each size, and verifies the PDF page count. Review the
 screenshots as well as the report: DOM bounds cannot establish visual quality.
+
+The semantic geometry suite checks ownership containment and separation at all
+three viewport sizes. The IaC runtime and external bootstrap are sibling groups;
+SSO is a dashed, explicitly unproven step inside the human lane. The local Compose
+panel is deliberately a service inventory, not a network/dependency diagram.
 
 After publishing, repeat against the real repository subpath, not just local HTML:
 
